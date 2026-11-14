@@ -35,7 +35,10 @@ export async function sendWidget(chatId: number, html: string, caption: string, 
 }
 
 export const mainMenu = {
-  keyboard: [[{ text: "🚀 Открыть EVERYTHING", web_app: { url: process.env.NEXT_PUBLIC_SITE_URL || "https://gptproject-gamma.vercel.app" } }]],
+  keyboard: [
+    [{ text: "📋 Планировщик" }, { text: "➕ Добавить задачу" }],
+    [{ text: "💰 Финансы" }],
+  ],
   resize_keyboard: true,
   is_persistent: true,
 };
