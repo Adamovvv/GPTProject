@@ -58,7 +58,7 @@ async function load(user: TgUser) {
   const income = transactions.filter(x => x.kind === "income").reduce((s, x) => s + Number(x.amount), 0);
   const expenses = transactions.filter(x => x.kind === "expense").reduce((s, x) => s + Number(x.amount), 0);
   return {
-    user: { id: String(user.id), first_name: user.first_name || "Привет", username: user.username },
+    user: { id: String(user.id), first_name: user.first_name || "Привет", username: user.username, bio: (users.data || []).find(x => x.telegram_id === user.id)?.bio || "" },
     transactions, tasks: tasks.data || [],
     totals: { income: Number(income.toFixed(2)), expenses: Number(expenses.toFixed(2)) },
     posts: posts.data || [], products: products.data || [],
