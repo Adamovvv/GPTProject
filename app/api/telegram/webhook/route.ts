@@ -115,7 +115,7 @@ async function handleMessage(m: Message) {
   const command = text.split(/\s+/)[0].split("@")[0].toLowerCase();
 
   if (command === "/start" || command === "/menu") {
-    await telegram("setChatMenuButton", { chat_id: m.chat.id, menu_button: { type: "default" } });
+    await telegram("setChatMenuButton", { chat_id: m.chat.id, menu_button: { type: "commands" } });
     await telegram("setMyCommands", { commands: [
       { command: "start", description: "Запустить бота" },
       { command: "planner", description: "Открыть планировщик" },
