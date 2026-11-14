@@ -1,10 +1,46 @@
-# Republic
+# Республика — пространство жителей
 
-Community portal MVP for a republic: local news, city communities, resident posts, and public issue reporting.
+MVP независимой общественной платформы: городские сообщества, публикации жителей, комментарии, реакции и публичные обращения о проблемах.
 
-## Stack
-- Next.js App Router
-- TypeScript
-- Tailwind CSS
-- Supabase Auth, Postgres, and Storage
-- Vercel deployment
+## Реализовано
+- Русскоязычный адаптивный интерфейс
+- Регистрация и вход через Supabase Auth
+- Профили жителей (создаются автоматически при регистрации)
+- Лента публикаций с фильтрами по категории и городу
+- Создание публикаций, лайки и комментарии
+- Раздел «Народный контроль» с отправкой обращений и статусами
+- Отправка жалоб на публикации
+- Базовая статистика сообщества
+
+## Технологии
+- Next.js 15 App Router + TypeScript
+- React 19
+- Supabase Auth + PostgreSQL + RLS
+- Vercel
+
+## Переменные окружения
+Создайте в Vercel или локальном `.env.local`:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+```
+
+В Vercel эти переменные уже настроены для проекта GPTProject во всех окружениях.
+
+## Запуск локально
+```bash
+npm install
+npm run dev
+```
+
+## База данных
+Схема для Supabase находится в `supabase/migrations/202611140001_republic_mvp_schema.sql`.
+Миграция применена к Supabase-проекту `GPTProject`. Все таблицы в `public` защищены RLS. Профили и опубликованные материалы доступны для чтения, а запись ограничена авторизованными пользователями и владельцами строк.
+
+## Следующие этапы
+- Админ-панель и инструменты модерации
+- Загрузка фотографий в Storage
+- Подтверждение и редактирование профиля
+- Отдельные страницы городов и сообществ
+- Афиша и вакансии
+- Уведомления и realtime-обновления
