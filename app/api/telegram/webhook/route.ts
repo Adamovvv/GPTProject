@@ -175,8 +175,21 @@ async function handleUpdate(update: TelegramUpdate) {
   if (!m?.from || !m.text || m.chat.type !== "private") return;
   await saveUser(m.from);
   const command = m.text.trim().split(/\s+/)[0].split("@")[0].toLowerCase();
-  if (command === "/start" || command === "/menu") return sendMessage(m.chat.id,
-    "Привет! Это EVERYTHING — финансы и планировщик в Telegram. Выберите нужный раздел:", mainMenu);
+  if (command === "/start" || command === "/menu") {
+    try {
+      await telegram("setChatMenuButton", {
+        menu_button: {
+          type: "web_app",
+          text: "Открыть приложение",
+          web_app: { url: process.env.NEXT_PUBLIC_SITE_URL || "https://gptproject-gamma.vercel.app" },
+        },
+      });
+    } catch (error) {
+      console.warn("Could not set Telegram Mini App menu button:", error instanceof Error ? error.message : "unknown");
+    }
+    return sendMessage(m.chat.id,
+      "Привет! Это EVERYTHING — твои финансы и планировщик в одном приложении. Нажми кнопку ниже, чтобы открыть:", mainMenu);
+  }
   if (command === "/finance") return openFinance(m.chat.id, m.from.id);
   if (command === "/planner" || command === "/tasks") return openPlanner(m.chat.id, m.from.id);
   if (command === "/help") return sendMessage(m.chat.id, "Команды:\n/finance — финансы\n/planner — планировщик\n/menu — главное меню", mainMenu);
