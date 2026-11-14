@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDatabase } from "@/lib/db";
-import { mainMenu, sendMessage, telegram } from "@/lib/telegram";
+import { mainMenu, sendMessage, sendWidget, telegram } from "@/lib/telegram";
+import { financeWidget, plannerWidget } from "@/lib/widgets";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,7 +9,8 @@ export const dynamic = "force-dynamic";
 type TelegramUser = { id: number; first_name?: string; last_name?: string; username?: string; language_code?: string };
 type TelegramMessage = { message_id: number; text?: string; chat: { id: number; type: string }; from?: TelegramUser };
 type Callback = { id: string; data?: string; from: TelegramUser; message?: TelegramMessage };
-type TelegramUpdate = { update_id: number; message?: TelegramMessage; callback_query?: Callback };
+type WidgetQuery = { id: string; data: string; from: TelegramUser; chat?: { id: number }; message_id?: number; type?: { type?: string } };
+type TelegramUpdate = { update_id: number; message?: TelegramMessage; callback_query?: Callback; widget_query?: WidgetQuery };
 
 async function saveUser(user: TelegramUser) {
   const { error } = await getDatabase().from("telegram_users").upsert({
@@ -41,27 +43,41 @@ async function getPlannerState(id: number) {
 const money = (n: number) => new Intl.NumberFormat("ru-RU", { style: "currency", currency: "EUR" }).format(n);
 async function openFinance(chatId: number, userId: number) {
   const s = await getFinanceState(userId);
-  const rows = s.recent.length ? s.recent.map(x => `• ${x.kind === "income" ? "+" : "−"}${money(Number(x.amount))} — ${x.category}`).join("\n") : "Пока нет операций.";
-  const keyboard = { inline_keyboard: [
-    [{ text: "− €12 · Еда", callback_data: "tx:expense:food:12" }, { text: "− €4 · Транспорт", callback_data: "tx:expense:transport:4" }],
-    [{ text: "− €3 · Кофе", callback_data: "tx:expense:coffee:3" }, { text: "+ €50 · Доход", callback_data: "tx:income:other:50" }],
-    [{ text: "↻ Обновить", callback_data: "open:finance" }, { text: "← Меню", callback_data: "open:menu" }],
-  ]};
-  return sendMessage(chatId, `◈ ФИНАНСЫ · ЭТОТ МЕСЯЦ\n\nДоходы: ${money(s.income)}\nРасходы: ${money(s.expenses)}\nБаланс: ${money(s.income-s.expenses)}\n\nПОСЛЕДНИЕ ОПЕРАЦИИ\n${rows}\n\nВыберите действие:`, keyboard);
+  const widgetState = { income: s.income, expenses: s.expenses, currency: "EUR", recent: s.recent };
+  try {
+    return await sendWidget(chatId, financeWidget(widgetState), "◈ Финансы · этот месяц", widgetState);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown";
+    console.warn("Telegram Finance widget unavailable; using inline keyboard:", message);
+    const rows = s.recent.length ? s.recent.map(x => `• ${x.kind === "income" ? "+" : "−"}${money(Number(x.amount))} — ${x.category}`).join("\n") : "Пока нет операций.";
+    const keyboard = { inline_keyboard: [
+      [{ text: "− €12 · Еда", callback_data: "tx:expense:food:12" }, { text: "− €4 · Транспорт", callback_data: "tx:expense:transport:4" }],
+      [{ text: "− €3 · Кофе", callback_data: "tx:expense:coffee:3" }, { text: "+ €50 · Доход", callback_data: "tx:income:other:50" }],
+      [{ text: "↻ Обновить", callback_data: "open:finance" }, { text: "← Меню", callback_data: "open:menu" }],
+    ]};
+    return sendMessage(chatId, `◈ ФИНАНСЫ · ЭТОТ МЕСЯЦ\n\nДоходы: ${money(s.income)}\nРасходы: ${money(s.expenses)}\nБаланс: ${money(s.income-s.expenses)}\n\nПОСЛЕДНИЕ ОПЕРАЦИИ\n${rows}\n\nВыберите действие:`, keyboard);
+  }
 }
 
 async function openPlanner(chatId: number, userId: number) {
   const tasks = await getPlannerState(userId);
-  const active = tasks.filter(x => !x.is_done).length;
-  const lines = tasks.length ? tasks.map(x => `${x.is_done ? "✓" : "○"} ${x.title}`).join("\n") : "Задач пока нет.";
-  const taskButtons = tasks.filter(x => !x.is_done).slice(0,6).map(x => [{ text: `✓ ${x.title.slice(0,30)}`, callback_data: `task:done:${x.id}` }]);
-  const keyboard = { inline_keyboard: [
-    ...taskButtons,
-    [{ text: "＋ Купить продукты", callback_data: "task:add:shop" }, { text: "＋ Оплатить счета", callback_data: "task:add:bills" }],
-    [{ text: "＋ Позвонить", callback_data: "task:add:call" }],
-    [{ text: "↻ Обновить", callback_data: "open:planner" }, { text: "← Меню", callback_data: "open:menu" }],
-  ]};
-  return sendMessage(chatId, `✓ ПЛАНИРОВЩИК\n\nАктивных задач: ${active}\n\n${lines}\n\nНажмите на задачу, чтобы отметить её выполненной, или добавьте новую:`, keyboard);
+  const widgetState = { tasks: tasks.map(x => ({ id: x.id, title: x.title, done: x.is_done })) };
+  try {
+    return await sendWidget(chatId, plannerWidget(widgetState), "✓ Планировщик · мои задачи", widgetState);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown";
+    console.warn("Telegram Planner widget unavailable; using inline keyboard:", message);
+    const active = tasks.filter(x => !x.is_done).length;
+    const lines = tasks.length ? tasks.map(x => `${x.is_done ? "✓" : "○"} ${x.title}`).join("\n") : "Задач пока нет.";
+    const taskButtons = tasks.filter(x => !x.is_done).slice(0,6).map(x => [{ text: `✓ ${x.title.slice(0,30)}`, callback_data: `task:done:${x.id}` }]);
+    const keyboard = { inline_keyboard: [
+      ...taskButtons,
+      [{ text: "＋ Купить продукты", callback_data: "task:add:shop" }, { text: "＋ Оплатить счета", callback_data: "task:add:bills" }],
+      [{ text: "＋ Позвонить", callback_data: "task:add:call" }],
+      [{ text: "↻ Обновить", callback_data: "open:planner" }, { text: "← Меню", callback_data: "open:menu" }],
+    ]};
+    return sendMessage(chatId, `✓ ПЛАНИРОВЩИК\n\nАктивных задач: ${active}\n\n${lines}\n\nНажмите на задачу, чтобы отметить её выполненной, или добавьте новую:`, keyboard);
+  }
 }
 
 async function handleCallback(q: Callback) {
@@ -104,7 +120,56 @@ async function handleCallback(q: Callback) {
   await telegram("answerCallbackQuery", { callback_query_id:q.id });
 }
 
+async function handleWidgetQuery(q: WidgetQuery) {
+  if (!q.chat?.id || !q.message_id) {
+    await telegram("answerWidgetQuery", { widget_query_id: q.id, data: "Не удалось определить сообщение" });
+    return;
+  }
+  await saveUser(q.from);
+  const data = q.data ?? "";
+  let state: unknown;
+  let result = "Готово";
+  const tx = data.match(/^tx:(expense|income):(food|transport|coffee|other):([0-9]{1,6})$/);
+  const add = data.match(/^task:add:(shop|bills|call)$/);
+  const done = data.match(/^task:done:([0-9a-f-]{36})$/i);
+  if (tx) {
+    const [, kind, category, amount] = tx;
+    const names: Record<string,string> = { food:"Еда", transport:"Транспорт", coffee:"Кофе", other:"Другое" };
+    const { error } = await getDatabase().from("finance_transactions").insert({
+      telegram_id:q.from.id, kind, category:names[category], amount:Number(amount), currency:"EUR",
+    });
+    if (error) throw error;
+    const s = await getFinanceState(q.from.id);
+    state = { income:s.income, expenses:s.expenses, currency:"EUR", recent:s.recent };
+    result = kind === "income" ? "Доход записан" : "Расход записан";
+  } else if (add) {
+    const titles: Record<string,string> = { shop:"Купить продукты", bills:"Оплатить счета", call:"Позвонить" };
+    const { error } = await getDatabase().from("planner_tasks").insert({ telegram_id:q.from.id, title:titles[add[1]], priority:"normal" });
+    if (error) throw error;
+    const tasks = await getPlannerState(q.from.id);
+    state = { tasks:tasks.map(x => ({ id:x.id, title:x.title, done:x.is_done })) };
+    result = "Задача добавлена";
+  } else if (done) {
+    const { error } = await getDatabase().from("planner_tasks").update({
+      is_done:true, completed_at:new Date().toISOString(), updated_at:new Date().toISOString(),
+    }).eq("id", done[1]).eq("telegram_id", q.from.id);
+    if (error) throw error;
+    const tasks = await getPlannerState(q.from.id);
+    state = { tasks:tasks.map(x => ({ id:x.id, title:x.title, done:x.is_done })) };
+    result = "Задача выполнена";
+  } else {
+    result = "Неизвестное действие";
+  }
+  if (state !== undefined) {
+    await telegram("editMessageWidgetData", {
+      chat_id:q.chat.id, message_id:q.message_id, chat_data:JSON.stringify(state),
+    });
+  }
+  await telegram("answerWidgetQuery", { widget_query_id:q.id, data:result });
+}
+
 async function handleUpdate(update: TelegramUpdate) {
+  if (update.widget_query) return handleWidgetQuery(update.widget_query);
   if (update.callback_query) return handleCallback(update.callback_query);
   const m = update.message;
   if (!m?.from || !m.text || m.chat.type !== "private") return;
