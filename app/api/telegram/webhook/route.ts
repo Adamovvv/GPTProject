@@ -36,7 +36,7 @@ async function getFinanceState(telegramId: number) {
     .select("kind,amount,category,occurred_at")
     .eq("telegram_id", telegramId)
     .gte("occurred_at", start.toISOString())
-    .order("occurred_at", { ascending: false }).limit(8);
+    .order("occurred_at", { ascending: false }).limit(1000);
   if (error) throw error;
   const rows = data ?? [];
   const income = rows.filter((x) => x.kind === "income").reduce((sum, x) => sum + Number(x.amount), 0);
