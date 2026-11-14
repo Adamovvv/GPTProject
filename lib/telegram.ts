@@ -24,16 +24,6 @@ export async function sendMessage(chatId: number, text: string, replyMarkup?: Re
   });
 }
 
-export async function sendWidget(chatId: number, html: string, caption: string, chatData: unknown) {
-  return telegram("sendWidget", {
-    chat_id: chatId,
-    html,
-    caption,
-    allow_queries: true,
-    chat_data: JSON.stringify(chatData),
-  });
-}
-
 export const mainMenu = {
   keyboard: [
     [{ text: "📋 Планировщик" }, { text: "➕ Добавить задачу" }],
