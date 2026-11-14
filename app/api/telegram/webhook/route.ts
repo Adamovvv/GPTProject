@@ -173,7 +173,7 @@ async function handleUpdate(update: TelegramUpdate) {
       console.warn("Could not set Telegram Mini App menu button:", error instanceof Error ? error.message : "unknown");
     }
     return sendMessage(m.chat.id,
-      "Привет! Это EVERYTHING — твои финансы и планировщик в одном приложении. Нажми кнопку ниже, чтобы открыть:", mainMenu);
+      "Привет! Это EVERYTHING — твоя платформа: финансы, планировщик, сообщество, маркетплейс и сообщения. Нажми кнопку ниже, чтобы открыть:", mainMenu);
   }
   if (command === "/finance") return openFinance(m.chat.id, m.from.id);
   if (command === "/planner" || command === "/tasks") return openPlanner(m.chat.id, m.from.id);
