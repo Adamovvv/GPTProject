@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDatabase } from "@/lib/db";
-import { mainMenu, sendMessage, sendWidget, telegram } from "@/lib/telegram";
-import { financeWidget, plannerWidget } from "@/lib/widgets";
+import { mainMenu, sendMessage, telegram } from "@/lib/telegram";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,41 +42,27 @@ async function getPlannerState(id: number) {
 const money = (n: number) => new Intl.NumberFormat("ru-RU", { style: "currency", currency: "EUR" }).format(n);
 async function openFinance(chatId: number, userId: number) {
   const s = await getFinanceState(userId);
-  const widgetState = { income: s.income, expenses: s.expenses, currency: "EUR", recent: s.recent };
-  try {
-    return await sendWidget(chatId, financeWidget(widgetState), "◈ Финансы · этот месяц", widgetState);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "unknown";
-    console.warn("Telegram Finance widget unavailable; using inline keyboard:", message);
-    const rows = s.recent.length ? s.recent.map(x => `• ${x.kind === "income" ? "+" : "−"}${money(Number(x.amount))} — ${x.category}`).join("\n") : "Пока нет операций.";
-    const keyboard = { inline_keyboard: [
-      [{ text: "− €12 · Еда", callback_data: "tx:expense:food:12" }, { text: "− €4 · Транспорт", callback_data: "tx:expense:transport:4" }],
-      [{ text: "− €3 · Кофе", callback_data: "tx:expense:coffee:3" }, { text: "+ €50 · Доход", callback_data: "tx:income:other:50" }],
-      [{ text: "↻ Обновить", callback_data: "open:finance" }, { text: "← Меню", callback_data: "open:menu" }],
-    ]};
-    return sendMessage(chatId, `◈ ФИНАНСЫ · ЭТОТ МЕСЯЦ\n\nДоходы: ${money(s.income)}\nРасходы: ${money(s.expenses)}\nБаланс: ${money(s.income-s.expenses)}\n\nПОСЛЕДНИЕ ОПЕРАЦИИ\n${rows}\n\nВыберите действие:`, keyboard);
-  }
+  const rows = s.recent.length ? s.recent.map(x => `• ${x.kind === "income" ? "+" : "−"}${money(Number(x.amount))} — ${x.category}`).join("\n") : "Пока нет операций.";
+  const keyboard = { inline_keyboard: [
+    [{ text: "− €12 · Еда", callback_data: "tx:expense:food:12" }, { text: "− €4 · Транспорт", callback_data: "tx:expense:transport:4" }],
+    [{ text: "− €3 · Кофе", callback_data: "tx:expense:coffee:3" }, { text: "+ €50 · Доход", callback_data: "tx:income:other:50" }],
+    [{ text: "↻ Обновить", callback_data: "open:finance" }, { text: "← Меню", callback_data: "open:menu" }],
+  ]};
+  return sendMessage(chatId, `◈ ФИНАНСЫ · ЭТОТ МЕСЯЦ\n\nДоходы: ${money(s.income)}\nРасходы: ${money(s.expenses)}\nБаланс: ${money(s.income-s.expenses)}\n\nПОСЛЕДНИЕ ОПЕРАЦИИ\n${rows}\n\nВыберите действие:`, keyboard);
 }
 
 async function openPlanner(chatId: number, userId: number) {
   const tasks = await getPlannerState(userId);
-  const widgetState = { tasks: tasks.map(x => ({ id: x.id, title: x.title, done: x.is_done })) };
-  try {
-    return await sendWidget(chatId, plannerWidget(widgetState), "✓ Планировщик · мои задачи", widgetState);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "unknown";
-    console.warn("Telegram Planner widget unavailable; using inline keyboard:", message);
-    const active = tasks.filter(x => !x.is_done).length;
-    const lines = tasks.length ? tasks.map(x => `${x.is_done ? "✓" : "○"} ${x.title}`).join("\n") : "Задач пока нет.";
-    const taskButtons = tasks.filter(x => !x.is_done).slice(0,6).map(x => [{ text: `✓ ${x.title.slice(0,30)}`, callback_data: `task:done:${x.id}` }]);
-    const keyboard = { inline_keyboard: [
-      ...taskButtons,
-      [{ text: "＋ Купить продукты", callback_data: "task:add:shop" }, { text: "＋ Оплатить счета", callback_data: "task:add:bills" }],
-      [{ text: "＋ Позвонить", callback_data: "task:add:call" }],
-      [{ text: "↻ Обновить", callback_data: "open:planner" }, { text: "← Меню", callback_data: "open:menu" }],
-    ]};
-    return sendMessage(chatId, `✓ ПЛАНИРОВЩИК\n\nАктивных задач: ${active}\n\n${lines}\n\nНажмите на задачу, чтобы отметить её выполненной, или добавьте новую:`, keyboard);
-  }
+  const active = tasks.filter(x => !x.is_done).length;
+  const lines = tasks.length ? tasks.map(x => `${x.is_done ? "✓" : "○"} ${x.title}`).join("\n") : "Задач пока нет.";
+  const taskButtons = tasks.filter(x => !x.is_done).slice(0,6).map(x => [{ text: `✓ ${x.title.slice(0,30)}`, callback_data: `task:done:${x.id}` }]);
+  const keyboard = { inline_keyboard: [
+    ...taskButtons,
+    [{ text: "+ Купить продукты", callback_data: "task:add:shop" }, { text: "+ Оплатить счета", callback_data: "task:add:bills" }],
+    [{ text: "+ Позвонить", callback_data: "task:add:call" }],
+    [{ text: "↻ Обновить", callback_data: "open:planner" }, { text: "← Меню", callback_data: "open:menu" }],
+  ]};
+  return sendMessage(chatId, `✓ ПЛАНИРОВЩИК\n\nАктивных задач: ${active}\n\n${lines}\n\nНажмите на задачу, чтобы отметить её выполненной, или добавьте новую:`, keyboard);
 }
 
 async function handleCallback(q: Callback) {
