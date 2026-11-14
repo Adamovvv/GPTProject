@@ -16,7 +16,7 @@ async function configure(request: NextRequest, allowQuerySecret = false) {
   if (!bearer && !query) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const result = await telegram("setWebhook", {
-    url: `${siteUrl.replace(/\\/$/, "")}/api/telegram/webhook`,
+    url: `${siteUrl.endsWith("/") ? siteUrl.slice(0, -1) : siteUrl}/api/telegram/webhook`,
     secret_token: webhookSecret,
     allowed_updates: ["message", "callback_query", "widget_query"],
     drop_pending_updates: true,
