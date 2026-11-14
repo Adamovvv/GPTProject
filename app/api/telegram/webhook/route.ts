@@ -115,6 +115,13 @@ async function handleMessage(m: Message) {
   const command = text.split(/\s+/)[0].split("@")[0].toLowerCase();
 
   if (command === "/start" || command === "/menu") {
+    await telegram("setChatMenuButton", { chat_id: m.chat.id, menu_button: { type: "default" } });
+    await telegram("setMyCommands", { commands: [
+      { command: "start", description: "Запустить бота" },
+      { command: "planner", description: "Открыть планировщик" },
+      { command: "addtask", description: "Добавить задачу" },
+      { command: "help", description: "Помощь" },
+    ] });
     return sendMessage(m.chat.id,
       "Привет, " + (m.from.first_name || "друг") + "! 👋\n\nЭто EVERYTHING BOT. Начинаем с планировщика: добавляй задачи, отмечай выполненные и следи за планами. Остальные разделы добавим постепенно.",
       mainMenu);
