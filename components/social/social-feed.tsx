@@ -244,7 +244,7 @@ export function SocialFeed({
                   <div className="flex items-start gap-3">
                     <Avatar src={post.author?.avatar_url} name={authorName} />
                     <div className="min-w-0 flex-1 pt-0.5">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1"><Link href={post.author?.id === userId ? "/profile" : `/profile?user=${post.user_id}`} className="truncate text-sm font-semibold hover:underline">{authorName}</Link>{post.author?.username && <span className="text-xs text-neutral-400">@{post.author.username}</span>}</div>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">{post.author?.id === userId ? <Link href="/profile" className="truncate text-sm font-semibold hover:underline">{authorName}</Link> : <span className="truncate text-sm font-semibold">{authorName}</span>}{post.author?.username && <span className="text-xs text-neutral-400">@{post.author.username}</span>}</div>
                       <p className="mt-1 text-[11px] text-neutral-400">{timeAgo(post.created_at)}</p>
                     </div>
                     <Button variant="ghost" size="icon" aria-label="Дополнительные действия"><MoreHorizontal className="h-5 w-5" /></Button>
