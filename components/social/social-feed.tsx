@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Bell, Bookmark, Check, ChevronDown, Compass, Heart, Image as ImageIcon,
+  Bell, Bookmark, Check, ChevronDown, Compass, Heart, House, Image as ImageIcon,
   MessageCircle, MoreHorizontal, Plus, Search, Send, Users, X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -38,12 +39,14 @@ function timeAgo(value: string) {
 
 export function SocialFeed({
   initialPosts,
+  initialFollowing,
   suggestions,
   userId,
   currentProfile,
   loadError,
 }: {
   initialPosts: SocialPost[];
+  initialFollowing: string[];
   suggestions: Suggestion[];
   userId: string | null;
   currentProfile: Person | null;
@@ -57,7 +60,7 @@ export function SocialFeed({
   const [activeComments, setActiveComments] = useState<string | null>(null);
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
-  const [following, setFollowing] = useState<string[]>([]);
+  const [following, setFollowing] = useState<string[]>(initialFollowing);
   const [notice, setNotice] = useState<string | null>(null);
 
   const visiblePosts = useMemo(() => {
@@ -300,7 +303,7 @@ export function SocialFeed({
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-30 flex h-[66px] items-center justify-around border-t border-neutral-200 bg-white/95 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
-        <Link href="/" className="flex min-w-[54px] flex-col items-center gap-1 text-neutral-400"><span className="text-[19px]">⌂</span><span className="text-[10px]">Главная</span></Link>
+        <Link href="/" className="flex min-w-[54px] flex-col items-center gap-1 text-neutral-400"><House className="h-5 w-5" /><span className="text-[10px]">Главная</span></Link>
         <Link href="/social" className="flex min-w-[54px] flex-col items-center gap-1 text-neutral-900"><Compass className="h-5 w-5" /><span className="text-[10px] font-semibold">Social</span></Link>
         <Link href="/market" className="flex min-w-[54px] flex-col items-center gap-1 text-neutral-400"><Bookmark className="h-5 w-5" /><span className="text-[10px]">Market</span></Link>
         <Link href="/events" className="flex min-w-[54px] flex-col items-center gap-1 text-neutral-400"><Bell className="h-5 w-5" /><span className="text-[10px]">Events</span></Link>
