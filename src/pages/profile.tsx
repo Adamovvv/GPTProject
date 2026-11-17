@@ -1,6 +1,6 @@
 import {useCallback,useEffect,useState} from 'react';
 import {Link,useParams} from 'react-router-dom';
-import {Loader2,MapPin,UserRound} from 'lucide-react';
+import {Loader2,UserRound} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {Card,CardContent} from '@/components/ui/card';
 import {supabase} from '@/lib/supabase';
