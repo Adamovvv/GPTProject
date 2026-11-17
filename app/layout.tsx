@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "EVERYTHING BOT",
-  description: "Личный Telegram-бот с планировщиком и полезными инструментами.",
+  title: "KYRO — Everything. Connected.",
+  description: "Твоё цифровое пространство для общения, покупок и новых возможностей.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
