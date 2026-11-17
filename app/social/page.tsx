@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export default async function SocialPage() {
   const supabase = await createClient();
   if (!supabase) {
-    return <SocialFeed initialPosts={[]} suggestions={[]} userId={null} currentProfile={null} loadError="Для работы KYRO Social добавьте NEXT_PUBLIC_SUPABASE_URL и NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY в переменные окружения. Затем примените миграцию supabase/migrations/20261117120000_create_kyro_social.sql." />;
+    return <SocialFeed initialPosts={[]} initialFollowing={[]} suggestions={[]} userId={null} currentProfile={null} loadError="Для работы KYRO Social добавьте NEXT_PUBLIC_SUPABASE_URL и NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY в переменные окружения. Затем примените миграцию supabase/migrations/20261117120000_create_kyro_social.sql." />;
   }
 
   const { data: auth } = await supabase.auth.getUser();
@@ -22,16 +22,17 @@ export default async function SocialPage() {
     .order("created_at", { ascending: false }).limit(40);
 
   if (postsError) {
-    return <SocialFeed initialPosts={[]} suggestions={[]} userId={userId} currentProfile={currentProfile} loadError="Таблицы KYRO Social пока не найдены. Примените миграцию supabase/migrations/20261117120000_create_kyro_social.sql в Supabase SQL Editor." />;
+    return <SocialFeed initialPosts={[]} initialFollowing={[]} suggestions={[]} userId={userId} currentProfile={currentProfile} loadError="Таблицы KYRO Social пока не найдены. Примените миграцию supabase/migrations/20261117120000_create_kyro_social.sql в Supabase SQL Editor." />;
   }
 
   const postIds = (postRows || []).map((post) => post.id);
   const profileIds = [...new Set([userId, ...(postRows || []).map((post) => post.user_id)])];
-  const [profilesResult, likesResult, commentsResult, suggestionsResult] = await Promise.all([
+  const [profilesResult, likesResult, commentsResult, suggestionsResult, followsResult] = await Promise.all([
     supabase.from("profiles").select("id, username, full_name, avatar_url").in("id", profileIds),
     postIds.length ? supabase.from("social_likes").select("post_id, user_id").in("post_id", postIds) : Promise.resolve({ data: [], error: null }),
     postIds.length ? supabase.from("social_comments").select("post_id").in("post_id", postIds) : Promise.resolve({ data: [], error: null }),
     supabase.from("profiles").select("id, username, full_name, avatar_url").neq("id", userId).limit(5),
+    supabase.from("social_follows").select("following_id").eq("follower_id", userId),
   ]);
 
   const profileMap = new Map((profilesResult.data || []).map((profile) => [profile.id, profile]));
@@ -50,6 +51,7 @@ export default async function SocialPage() {
   return (
     <SocialFeed
       initialPosts={initialPosts}
+      initialFollowing={(followsResult.data || []).map((follow) => follow.following_id)}
       suggestions={suggestionsResult.data || []}
       userId={userId}
       currentProfile={currentProfile}
