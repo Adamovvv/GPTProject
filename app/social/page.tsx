@@ -11,7 +11,7 @@ export default async function SocialPage() {
 
   const { data: auth } = await supabase.auth.getUser();
   const userId = auth.user?.id ?? null;
-  if (!userId) return <SocialFeed initialPosts={[]} suggestions={[]} userId={null} currentProfile={null} />;
+  if (!userId) return <SocialFeed initialPosts={[]} initialFollowing={[]} suggestions={[]} userId={null} currentProfile={null} />;
 
   const { data: currentProfileData } = await supabase
     .from("profiles").select("id, username, full_name, avatar_url").eq("id", userId).maybeSingle();
