@@ -27,4 +27,8 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 ```
 
+In Supabase Auth → URL Configuration, allow the app callback URL:
+- `https://gptproject-gamma.vercel.app/auth/callback`
+- `http://localhost:3000/auth/callback` for local development
+
 The first milestone is a responsive Dashboard MVP with Supabase authentication. Each product module has its own route and can evolve independently.
