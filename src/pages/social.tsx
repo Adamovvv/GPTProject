@@ -12,17 +12,18 @@ const normalize=(value:string)=>value.toLocaleLowerCase('ru').replace(/https?:\/
 export function SocialPage(){
  const [userId,setUserId]=useState('');const [posts,setPosts]=useState<SharedPost[]>([]);const [people,setPeople]=useState<Profile[]>([]);const [following,setFollowing]=useState<string[]>([]);const [tab,setTab]=useState<FeedTab>('for-you');const [content,setContent]=useState('');const [loading,setLoading]=useState(true);const [publishing,setPublishing]=useState(false);const [myInterests,setMyInterests]=useState<string[]>([]);const [peopleInterests,setPeopleInterests]=useState<Record<string,string[]>>({});const [likedAuthors,setLikedAuthors]=useState<string[]>([]);const [viewedAuthors,setViewedAuthors]=useState<string[]>([]);const [seenPostIds,setSeenPostIds]=useState<string[]>([]);
  const load=useCallback(async()=>{if(!supabase)return;setLoading(true);const {data:{user}}=await supabase.auth.getUser();if(!user){setLoading(false);return;}setUserId(user.id);
- const [{data:follows,error:followError},{data:profiles},{data:raw,error:postError},{data:ownTags,error:ownError},{data:likesByMe},{data:viewsByMe}]=await Promise.all([
+ const [{data:follows,error:followError},{data:profiles},{data:raw,error:postError},{data:ownTags,error:ownError},{data:likesByMe},{data:viewsByMe},{data:blockRows}]=await Promise.all([
  supabase.from('social_follows').select('following_id').eq('follower_id',user.id),
  supabase.from('profiles').select('id,username,full_name,avatar_url,bio').neq('id',user.id).order('created_at',{ascending:false}).limit(40),
  supabase.from('social_posts').select('id,user_id,content,created_at,author:profiles!social_posts_user_id_fkey(id,username,full_name,avatar_url)').eq('moderation_status','visible').order('created_at',{ascending:false}).limit(150),
  supabase.from('kyro_interests').select('interest').eq('user_id',user.id),
   supabase.from('social_likes').select('post_id').eq('user_id',user.id),
- supabase.from('social_post_views').select('post_id').eq('viewer_id',user.id).limit(500)
+ supabase.from('social_post_views').select('post_id').eq('viewer_id',user.id).limit(500),
+ supabase.from('kyro_user_blocks').select('blocker_id,blocked_id').or('blocker_id.eq.'+user.id+',blocked_id.eq.'+user.id)
  ]);
  if(followError||postError||ownError){toast.error('Не удалось загрузить ленту');setLoading(false);return;}
- const followIds=(follows||[]).map(x=>x.following_id);setFollowing(followIds);setPeople((profiles||[]) as Profile[]);setMyInterests((ownTags||[]).map(x=>x.interest));
- const rows=(raw||[]) as unknown as Array<{id:string;user_id:string;content:string;created_at:string;author:Profile}>;const postIds=rows.map(p=>p.id);
+ const followIds=(follows||[]).map(x=>x.following_id);setFollowing(followIds);setPeople(((profiles||[]) as Profile[]).filter(p=>!blockedIds.has(p.id)));setMyInterests((ownTags||[]).map(x=>x.interest));
+ const blockedIds=new Set((blockRows||[]).map(x=>x.blocker_id===user.id?x.blocked_id:x.blocker_id));const rows=((raw||[]) as unknown as Array<{id:string;user_id:string;content:string;created_at:string;author:Profile}>).filter(p=>!blockedIds.has(p.user_id));const postIds=rows.map(p=>p.id);
  const authorIds=[...new Set([...rows.map(p=>p.user_id),...(profiles||[]).map(p=>p.id)])];
  const {data:allTags}=authorIds.length?await supabase.from('kyro_interests').select('user_id,interest').in('user_id',authorIds):{data:[]};
  const grouped:Record<string,string[]>={};(allTags||[]).forEach(x=>{(grouped[x.user_id]??=[]).push(x.interest)});setPeopleInterests(grouped);
