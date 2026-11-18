@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
 import {Link,useNavigate} from 'react-router-dom';
-import {BadgeCheck,Bell,CheckCircle2,Loader2,LogOut,ShieldCheck,Smartphone} from 'lucide-react';
+import {Check,Bell,CheckCircle2,Loader2,LogOut,ShieldCheck,Smartphone} from 'lucide-react';
 import {Card,CardContent} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
@@ -25,9 +25,6 @@ export function SettingsPage(){
  const [savingVerification,setSavingVerification]=useState(false);
  const [pushBusy,setPushBusy]=useState(false);
  const [pushEnabled,setPushEnabled]=useState(false);
- const [feedMax,setFeedMax]=useState(3);
- const [feedHideSeen,setFeedHideSeen]=useState(true);
- const [savingFeed,setSavingFeed]=useState(false);
  useEffect(()=>{
   let active=true;
   void (async()=>{
@@ -35,8 +32,6 @@ export function SettingsPage(){
    const {data:{user}}=await supabase.auth.getUser();
    if(!user){setLoading(false);return;}
    setUserId(user.id);
-   const {data:feedPrefs}=await supabase.from('kyro_feed_preferences').select('max_posts_per_author,hide_seen_posts').eq('user_id',user.id).maybeSingle();
-   if(active&&feedPrefs){setFeedMax(feedPrefs.max_posts_per_author);setFeedHideSeen(feedPrefs.hide_seen_posts);}
    const [{data:profile},{data:request}]=await Promise.all([
     supabase.from('profiles').select('is_verified').eq('id',user.id).maybeSingle(),
     supabase.from('kyro_verification_requests').select('status,note').eq('user_id',user.id).order('created_at',{ascending:false}).limit(1).maybeSingle()
@@ -50,7 +45,6 @@ export function SettingsPage(){
   })();
   return()=>{active=false};
  },[]);
- const saveFeedPreferences=async()=>{if(!supabase||!userId)return;setSavingFeed(true);const {error}=await supabase.from('kyro_feed_preferences').upsert({user_id:userId,max_posts_per_author:feedMax,hide_seen_posts:feedHideSeen,updated_at:new Date().toISOString()},{onConflict:'user_id'});setSavingFeed(false);if(error){toast.error('Не удалось сохранить настройки ленты');return;}toast.success('Настройки ленты сохранены');};
  const requestVerification=async()=>{
   if(!supabase||!userId)return;
   setSavingVerification(true);
@@ -98,17 +92,10 @@ export function SettingsPage(){
  return <div className="mx-auto max-w-3xl space-y-5">
   <div><h1 className="text-3xl font-semibold">Настройки</h1><p className="mt-2 text-sm text-neutral-500">Управление аккаунтом и уведомлениями.</p></div>
   <Card><CardContent className="space-y-4 p-5">
-   <div className="flex items-center gap-3"><ShieldCheck size={19}/><div><h2 className="font-semibold">Подтверждение аккаунта</h2><p className="text-xs text-neutral-500">После проверки появится значок подтверждённого профиля.</p></div><div className="ml-auto">{verified?<BadgeCheck className="text-sky-600" size={21}/>:null}</div></div>
+   <div className="flex items-center gap-3"><ShieldCheck size={19}/><div><h2 className="font-semibold">Подтверждение аккаунта</h2><p className="text-xs text-neutral-500">После проверки появится значок подтверждённого профиля.</p></div><div className="ml-auto">{verified?<Check className="text-neutral-700" size={21}/>:null}</div></div>
    {verified?<p className="flex items-center gap-2 text-sm text-emerald-700"><CheckCircle2 size={16}/>Ваш аккаунт подтверждён.</p>:verificationStatus==='pending'?<p className="rounded-lg bg-neutral-50 p-3 text-sm text-neutral-600">Заявка отправлена и ожидает проверки администрацией.</p>:<><Input value={verificationNote} onChange={e=>setVerificationNote(e.target.value.slice(0,500))} placeholder="Кратко расскажите, почему аккаунт стоит подтвердить (необязательно)"/><Button onClick={()=>void requestVerification()} disabled={savingVerification}>{savingVerification?<Loader2 className="animate-spin" size={15}/>:null}Запросить подтверждение</Button>{verificationStatus==='rejected'&&<p className="text-xs text-neutral-400">Предыдущая заявка отклонена. Вы можете отправить новую.</p>}</>}
   </CardContent></Card>
-  <Card><CardContent className="space-y-4 p-5">
-   <div><h2 className="font-semibold">Персональная лента</h2><p className="mt-1 text-xs text-neutral-500">Настройте частоту публикаций от одного автора и скрытие уже просмотренного.</p></div>
-   <label className="grid gap-2 text-sm">Максимум публикаций от одного автора
-    <select value={feedMax} onChange={e=>setFeedMax(Number(e.target.value))} className="h-10 rounded-lg border bg-white px-3"><option value={1}>1 публикация</option><option value={2}>2 публикации</option><option value={3}>3 публикации</option><option value={5}>5 публикаций</option><option value={10}>10 публикаций</option></select>
-   </label>
-   <label className="flex items-center gap-3 text-sm"><input type="checkbox" checked={feedHideSeen} onChange={e=>setFeedHideSeen(e.target.checked)} className="h-4 w-4"/>Скрывать уже просмотренные публикации</label>
-   <div><Button onClick={()=>void saveFeedPreferences()} disabled={savingFeed}>{savingFeed?'Сохраняем…':'Сохранить настройки ленты'}</Button></div>
-  </CardContent></Card>
+  
   <Card><CardContent className="space-y-4 p-5">
    <div className="flex items-center gap-3"><Bell size={19}/><div><h2 className="font-semibold">Push-уведомления</h2><p className="text-xs text-neutral-500">Уведомления о новых действиях в KYRO.</p></div><div className="ml-auto text-xs text-neutral-400">{pushEnabled?'Включены':'Выключены'}</div></div>
    <div className="flex flex-wrap gap-2">{pushEnabled?<Button variant="outline" onClick={()=>void disablePush()} disabled={pushBusy}>{pushBusy?<Loader2 className="animate-spin" size={15}/>:null}Отключить</Button>:<Button onClick={()=>void enablePush()} disabled={pushBusy}>{pushBusy?<Loader2 className="animate-spin" size={15}/>:<Smartphone size={15}/>}Включить push</Button>}</div>
