@@ -54,11 +54,12 @@ export function SettingsPage(){
  };
  const enablePush=async()=>{
   if(!supabase)return;
-  const publicKey=import.meta.env.VITE_VAPID_PUBLIC_KEY as string|undefined;
-  if(!publicKey){toast.error('Push требует настройки VAPID_PUBLIC_KEY и VAPID_PRIVATE_KEY на сервере');return;}
   if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){toast.error('Этот браузер не поддерживает push-уведомления');return;}
   setPushBusy(true);
   try{
+   const {data:config,error:configError}=await supabase.functions.invoke('push-config');
+   if(configError||!config?.publicKey)throw new Error('Не удалось получить настройки Web Push');
+   const publicKey=String(config.publicKey);
    const permission=await Notification.requestPermission();
    if(permission!=='granted')throw new Error('Разрешение на уведомления не предоставлено');
    const registration=await navigator.serviceWorker.ready;
@@ -98,7 +99,7 @@ export function SettingsPage(){
   <Card><CardContent className="space-y-4 p-5">
    <div className="flex items-center gap-3"><Bell size={19}/><div><h2 className="font-semibold">Push-уведомления</h2><p className="text-xs text-neutral-500">Уведомления о новых действиях в KYRO.</p></div><div className="ml-auto text-xs text-neutral-400">{pushEnabled?'Включены':'Выключены'}</div></div>
    <div className="flex flex-wrap gap-2">{pushEnabled?<Button variant="outline" onClick={()=>void disablePush()} disabled={pushBusy}>{pushBusy?<Loader2 className="animate-spin" size={15}/>:null}Отключить</Button>:<Button onClick={()=>void enablePush()} disabled={pushBusy}>{pushBusy?<Loader2 className="animate-spin" size={15}/>:<Smartphone size={15}/>}Включить push</Button>}</div>
-   <p className="text-xs leading-5 text-neutral-400">Браузерная подписка хранится отдельно для каждого аккаунта. Для доставки при закрытом приложении на сервере должны быть заданы VAPID-ключи.</p>
+   <p className="text-xs leading-5 text-neutral-400">Браузерная подписка хранится отдельно для каждого аккаунта. Ключи шифруются и хранятся в Supabase Vault; отдельные секреты в Vercel не нужны.</p>
   </CardContent></Card>
   <Card><CardContent className="divide-y p-0">
    <Link to="/privacy" className="flex items-center gap-3 p-5 hover:bg-neutral-50"><ShieldCheck size={19}/><span className="text-sm font-medium">Конфиденциальность</span></Link>
