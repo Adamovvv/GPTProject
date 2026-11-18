@@ -21,10 +21,12 @@ Deno.serve(async(req)=>{
   const {data:notice,error:noticeError}=await admin.from('kyro_notifications').select('id,user_id,title,body,target_url').eq('id',notificationId).eq('user_id',user.id).maybeSingle();
   if(noticeError)throw noticeError;
   if(!notice)return json({error:'Notification not found'},404);
-  const publicKey=Deno.env.get('VAPID_PUBLIC_KEY');
-  const privateKey=Deno.env.get('VAPID_PRIVATE_KEY');
-  if(!publicKey||!privateKey)return json({error:'Web Push VAPID keys are not configured'},503);
-  webpush.setVapidDetails(Deno.env.get('VAPID_SUBJECT')||'https://gptproject-gamma.vercel.app',publicKey,privateKey);
+  const candidate=webpush.generateVAPIDKeys();
+  const {data:keyRows,error:keyError}=await admin.rpc('kyro_ensure_vapid_keys',{p_public:candidate.publicKey,p_private:candidate.privateKey});
+  if(keyError)throw keyError;
+  const keys=Array.isArray(keyRows)?keyRows[0]:keyRows;
+  if(!keys?.public_key||!keys?.private_key)throw new Error('VAPID keys unavailable');
+  webpush.setVapidDetails('https://gptproject-gamma.vercel.app',keys.public_key,keys.private_key);
   const {data:subscriptions,error:subscriptionsError}=await admin.from('kyro_push_subscriptions').select('id,endpoint,p256dh,auth_secret').eq('user_id',user.id);
   if(subscriptionsError)throw subscriptionsError;
   const payload=JSON.stringify({title:notice.title,body:notice.body,url:notice.target_url||'/notifications',tag:'kyro-'+notice.id});
