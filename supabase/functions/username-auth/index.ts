@@ -6,7 +6,7 @@ Deno.serve(async(req)=>{
  if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
  if(req.method!=='POST')return json({error:'Method not allowed'},405);
  try{
-  const {action,username,password,email:requestedEmail}=await req.json();
+  const {action,username,password}=await req.json();
   if(!['login','register'].includes(action)||typeof username!=='string'||typeof password!=='string')return json({error:'Некорректный запрос'},400);
   const normalized=username.trim().toLowerCase();
   if(!/^[a-z0-9_]{3,24}$/.test(normalized)||password.length<8||password.length>128)return json({error:'Проверьте username и пароль (не менее 8 символов)'},400);
@@ -18,26 +18,23 @@ Deno.serve(async(req)=>{
   const limits=await Promise.all(buckets.map((p_bucket_hash)=>admin.rpc('kyro_consume_auth_attempt',{p_bucket_hash,p_limit:8,p_window_seconds:900})));
   if(limits.some(({error})=>error))throw new Error('Rate limit check failed');
   if(limits.some(({data})=>data!==true))return json({error:'Слишком много попыток. Повторите позже.'},429);
-  let email='';
+  let email=normalized+'@auth.kyro.invalid';
   if(action==='register'){
-   const signupEmail=typeof requestedEmail==='string'?requestedEmail.trim().toLowerCase():'';
-   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupEmail)||signupEmail.endsWith('.invalid'))return json({error:'Укажите действующий email для подтверждения аккаунта'},400);
    const {data:existing,error:lookupError}=await admin.from('profiles').select('id').ilike('username',normalized).maybeSingle();
    if(lookupError)throw lookupError;
    if(existing)return json({error:'Этот username уже занят'},409);
-   const {data:created,error:createError}=await admin.auth.admin.createUser({email:signupEmail,password,email_confirm:false,user_metadata:{username:normalized}});
-   if(createError)return json({error:createError.message.includes('already been registered')?'Этот email уже используется':'Не удалось создать аккаунт'},409);
+   const {data:created,error:createError}=await admin.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{username:normalized}});
+   if(createError)return json({error:createError.message.includes('already been registered')?'Этот username уже занят':'Не удалось создать аккаунт'},409);
    const {error:profileError}=await admin.from('profiles').upsert({id:created.user.id,username:normalized,full_name:normalized},{onConflict:'id'});
    if(profileError){await admin.auth.admin.deleteUser(created.user.id);throw profileError;}
-   return json({verification_required:true});
+  }else{
+   const {data:profile,error:profileError}=await admin.from('profiles').select('id').ilike('username',normalized).maybeSingle();
+   if(profileError)throw profileError;
+   if(!profile)return json({error:'Неверный username или пароль'},401);
+   const {data:userData,error:userError}=await admin.auth.admin.getUserById(profile.id);
+   if(userError||!userData.user?.email)return json({error:'Неверный username или пароль'},401);
+   email=userData.user.email;
   }
-  const {data:profile,error:profileError}=await admin.from('profiles').select('id').ilike('username',normalized).maybeSingle();
-  if(profileError)throw profileError;
-  if(!profile)return json({error:'Неверный username или пароль'},401);
-  const {data:userData,error:userError}=await admin.auth.admin.getUserById(profile.id);
-  if(userError||!userData.user?.email)return json({error:'Неверный username или пароль'},401);
-  if(!userData.user.email_confirmed_at)return json({error:'Подтвердите email по ссылке из письма, затем войдите снова.'},403);
-  email=userData.user.email;
   const {data,error}=await auth.auth.signInWithPassword({email,password});
   if(error||!data.session)return json({error:'Неверный username или пароль'},401);
   return json({access_token:data.session.access_token,refresh_token:data.session.refresh_token});
