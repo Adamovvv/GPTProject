@@ -13,3 +13,5 @@
 .dark input,.dark textarea{background-color:#202020;color:#ededed}
 .dark input::placeholder,.dark textarea::placeholder{color:#858585}
 .dark .border-t,.dark .border-b,.dark .border-r,.dark .border{border-color:#333!important}
+
+@media (max-width: 767px){input,textarea,select,[contenteditable="true"]{font-size:16px!important}}

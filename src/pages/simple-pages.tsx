@@ -1,1 +1,111 @@
-import {Link} from 'react-router-dom';import {Settings,ShieldCheck} from 'lucide-react';import {Card,CardContent} from '@/components/ui/card';import {APP_VERSION} from '@/config/app';export function SettingsPage(){return <div className="mx-auto max-w-3xl"><h1 className="text-3xl font-semibold">Настройки</h1><p className="mt-2 text-sm text-neutral-500">Управление аккаунтом и информацией о платформе.</p><Card className="mt-7"><CardContent className="divide-y p-0"><Link to="/privacy" className="flex items-center gap-3 p-5 hover:bg-neutral-50"><ShieldCheck size={19}/><span className="text-sm font-medium">Конфиденциальность</span></Link><div className="flex items-center justify-between p-5"><span className="text-sm font-medium">Версия платформы</span><span className="text-sm text-neutral-500">KYRO v{APP_VERSION}</span></div></CardContent></Card></div>}export function PlaceholderPage({title,description}:{title:string;description:string}){return <div className="mx-auto max-w-2xl py-10"><Card><CardContent className="p-8 text-center"><div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100"><Settings size={20}/></div><h1 className="text-2xl font-semibold">{title}</h1><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-neutral-500">{description}</p><p className="mt-5 text-xs text-neutral-400">Раздел запланирован к реализации на следующем этапе.</p></CardContent></Card></div>}
+import {useEffect,useState} from 'react';
+import {Link} from 'react-router-dom';
+import {BadgeCheck,Bell,CheckCircle2,Loader2,ShieldCheck,Smartphone} from 'lucide-react';
+import {Card,CardContent} from '@/components/ui/card';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {APP_VERSION} from '@/config/app';
+import {supabase} from '@/lib/supabase';
+import {toast} from 'sonner';
+
+function decodeVapidKey(value:string){
+ const padding='='.repeat((4-value.length%4)%4);
+ const base64=(value+padding).replace(/-/g,'+').replace(/_/g,'/');
+ const raw=window.atob(base64);
+ return Uint8Array.from([...raw].map(char=>char.charCodeAt(0)));
+}
+
+export function SettingsPage(){
+ const [userId,setUserId]=useState('');
+ const [verified,setVerified]=useState(false);
+ const [verificationStatus,setVerificationStatus]=useState<string|null>(null);
+ const [verificationNote,setVerificationNote]=useState('');
+ const [loading,setLoading]=useState(true);
+ const [savingVerification,setSavingVerification]=useState(false);
+ const [pushBusy,setPushBusy]=useState(false);
+ const [pushEnabled,setPushEnabled]=useState(false);
+ useEffect(()=>{
+  let active=true;
+  void (async()=>{
+   if(!supabase){setLoading(false);return;}
+   const {data:{user}}=await supabase.auth.getUser();
+   if(!user){setLoading(false);return;}
+   setUserId(user.id);
+   const [{data:profile},{data:request}]=await Promise.all([
+    supabase.from('profiles').select('is_verified').eq('id',user.id).maybeSingle(),
+    supabase.from('kyro_verification_requests').select('status,note').eq('user_id',user.id).order('created_at',{ascending:false}).limit(1).maybeSingle()
+   ]);
+   if(active){setVerified(Boolean(profile?.is_verified));setVerificationStatus(request?.status||null);setVerificationNote(request?.note||'');setLoading(false);}
+   if('serviceWorker' in navigator&&'PushManager' in window){
+    const registration=await navigator.serviceWorker.ready;
+    const subscription=await registration.pushManager.getSubscription();
+    if(active)setPushEnabled(Boolean(subscription));
+   }
+  })();
+  return()=>{active=false};
+ },[]);
+ const requestVerification=async()=>{
+  if(!supabase||!userId)return;
+  setSavingVerification(true);
+  const {error}=await supabase.from('kyro_verification_requests').insert({user_id:userId,note:verificationNote.trim()});
+  setSavingVerification(false);
+  if(error){toast.error(error.code==='23505'?'Заявка уже находится на проверке':error.message||'Не удалось отправить заявку');return;}
+  setVerificationStatus('pending');toast.success('Заявка на подтверждение отправлена');
+ };
+ const enablePush=async()=>{
+  if(!supabase)return;
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){toast.error('Этот браузер не поддерживает push-уведомления');return;}
+  setPushBusy(true);
+  try{
+   const {data:config,error:configError}=await supabase.functions.invoke('push-config');
+   if(configError||!config?.publicKey)throw new Error('Не удалось получить настройки Web Push');
+   const publicKey=String(config.publicKey);
+   const permission=await Notification.requestPermission();
+   if(permission!=='granted')throw new Error('Разрешение на уведомления не предоставлено');
+   const registration=await navigator.serviceWorker.ready;
+   const subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:decodeVapidKey(publicKey)});
+   const json=subscription.toJSON();
+   if(!json.endpoint||!json.keys?.p256dh||!json.keys?.auth)throw new Error('Браузер вернул неполную push-подписку');
+   const {data:{user}}=await supabase.auth.getUser();
+   if(!user)throw new Error('Сессия завершена');
+   const {error}=await supabase.from('kyro_push_subscriptions').upsert({user_id:user.id,endpoint:json.endpoint,p256dh:json.keys.p256dh,auth_secret:json.keys.auth,last_seen_at:new Date().toISOString()},{onConflict:'endpoint'});
+   if(error)throw error;
+   setPushEnabled(true);toast.success('Push-подписка сохранена');
+  }catch(error){toast.error(error instanceof Error?error.message:'Не удалось включить уведомления')}
+  finally{setPushBusy(false)}
+ };
+ const disablePush=async()=>{
+  if(!supabase)return;
+  setPushBusy(true);
+  try{
+   const registration=await navigator.serviceWorker.ready;
+   const subscription=await registration.pushManager.getSubscription();
+   const endpoint=subscription?.endpoint;
+   await subscription?.unsubscribe();
+   if(endpoint){const {error}=await supabase.from('kyro_push_subscriptions').delete().eq('endpoint',endpoint);if(error)throw error;}
+   setPushEnabled(false);toast.success('Push-подписка отключена');
+  }catch(error){toast.error(error instanceof Error?error.message:'Не удалось отключить уведомления')}
+  finally{setPushBusy(false)}
+ };
+ if(loading)return <div className="flex justify-center py-16"><Loader2 className="animate-spin text-neutral-400"/></div>;
+ return <div className="mx-auto max-w-3xl space-y-5">
+  <div><h1 className="text-3xl font-semibold">Настройки</h1><p className="mt-2 text-sm text-neutral-500">Управление аккаунтом и уведомлениями.</p></div>
+  <Card><CardContent className="space-y-4 p-5">
+   <div className="flex items-center gap-3"><ShieldCheck size={19}/><div><h2 className="font-semibold">Подтверждение аккаунта</h2><p className="text-xs text-neutral-500">После проверки появится значок подтверждённого профиля.</p></div><div className="ml-auto">{verified?<BadgeCheck className="text-sky-600" size={21}/>:null}</div></div>
+   {verified?<p className="flex items-center gap-2 text-sm text-emerald-700"><CheckCircle2 size={16}/>Ваш аккаунт подтверждён.</p>:verificationStatus==='pending'?<p className="rounded-lg bg-neutral-50 p-3 text-sm text-neutral-600">Заявка отправлена и ожидает проверки администрацией.</p>:<><Input value={verificationNote} onChange={e=>setVerificationNote(e.target.value.slice(0,500))} placeholder="Кратко расскажите, почему аккаунт стоит подтвердить (необязательно)"/><Button onClick={()=>void requestVerification()} disabled={savingVerification}>{savingVerification?<Loader2 className="animate-spin" size={15}/>:null}Запросить подтверждение</Button>{verificationStatus==='rejected'&&<p className="text-xs text-neutral-400">Предыдущая заявка отклонена. Вы можете отправить новую.</p>}</>}
+  </CardContent></Card>
+  <Card><CardContent className="space-y-4 p-5">
+   <div className="flex items-center gap-3"><Bell size={19}/><div><h2 className="font-semibold">Push-уведомления</h2><p className="text-xs text-neutral-500">Уведомления о новых действиях в KYRO.</p></div><div className="ml-auto text-xs text-neutral-400">{pushEnabled?'Включены':'Выключены'}</div></div>
+   <div className="flex flex-wrap gap-2">{pushEnabled?<Button variant="outline" onClick={()=>void disablePush()} disabled={pushBusy}>{pushBusy?<Loader2 className="animate-spin" size={15}/>:null}Отключить</Button>:<Button onClick={()=>void enablePush()} disabled={pushBusy}>{pushBusy?<Loader2 className="animate-spin" size={15}/>:<Smartphone size={15}/>}Включить push</Button>}</div>
+   <p className="text-xs leading-5 text-neutral-400">Браузерная подписка хранится отдельно для каждого аккаунта. Ключи шифруются и хранятся в Supabase Vault; отдельные секреты в Vercel не нужны.</p>
+  </CardContent></Card>
+  <Card><CardContent className="divide-y p-0">
+   <Link to="/privacy" className="flex items-center gap-3 p-5 hover:bg-neutral-50"><ShieldCheck size={19}/><span className="text-sm font-medium">Конфиденциальность</span></Link>
+   <div className="flex items-center justify-between p-5"><span className="text-sm font-medium">Версия платформы</span><span className="text-sm text-neutral-500">KYRO v{APP_VERSION}</span></div>
+  </CardContent></Card>
+ </div>;
+}
+
+export function PlaceholderPage({title,description}:{title:string;description:string}){
+ return <div className="mx-auto max-w-2xl py-10"><Card><CardContent className="p-8 text-center"><div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100"><ShieldCheck size={20}/></div><h1 className="text-2xl font-semibold">{title}</h1><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-neutral-500">{description}</p><p className="mt-5 text-xs text-neutral-400">Раздел запланирован к реализации на следующем этапе.</p></CardContent></Card></div>;
+}

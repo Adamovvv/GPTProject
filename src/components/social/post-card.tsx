@@ -1,19 +1,70 @@
-import {Heart,MessageCircle} from 'lucide-react';
+import {useEffect,useRef,useState} from 'react';
+import {Eye,Heart,MessageCircle} from 'lucide-react';
 import {Link} from 'react-router-dom';
 import {Card,CardContent} from '@/components/ui/card';
+import {supabase} from '@/lib/supabase';
 
 export type PostAuthor={id?:string;username:string|null;full_name:string|null;avatar_url:string|null};
 export type SharedPost={id:string;user_id?:string;content:string;created_at:string;author:PostAuthor;likes?:number;liked?:boolean};
 const dateLabel=(value:string)=>new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(value));
 const initials=(p:PostAuthor)=>((p.full_name||p.username||'KY').trim().slice(0,2).toUpperCase());
+
+function getViewSession(postId:string){
+ const key='kyro:view-session:'+postId;
+ const now=Date.now();
+ try{
+  const saved=localStorage.getItem(key);
+  if(saved){const parsed=JSON.parse(saved) as {id:string;expires:number};if(parsed.expires>now)return parsed.id;}
+  const id=crypto.randomUUID();
+  localStorage.setItem(key,JSON.stringify({id,expires:now+30*60*1000}));
+  return id;
+ }catch{return crypto.randomUUID();}
+}
+
 export function PostCard({post,onLike,compact=false}:{post:SharedPost;onLike?:(post:SharedPost)=>void;compact?:boolean}){
  const href=post.author.username?'/u/'+post.author.username:'/profile';
- return <Card className="overflow-hidden"><CardContent className={compact?'p-4':'p-4 sm:p-5'}>
+ const cardRef=useRef<HTMLDivElement>(null);
+ const [views,setViews]=useState(0);
+ const [uniqueViewers,setUniqueViewers]=useState(0);
+ useEffect(()=>{
+  const client=supabase,element=cardRef.current;
+  if(!client||!element||typeof IntersectionObserver==='undefined')return;
+  let timer:ReturnType<typeof setTimeout>|undefined;
+  let loaded=false;
+  let recorded=false;
+  const sessionId=getViewSession(post.id);
+  const source=location.pathname.startsWith('/u/')?'profile':location.pathname==='/'?'dashboard':location.pathname==='/search'?'search':'feed';
+  const observer=new IntersectionObserver((entries)=>{
+   const visible=entries.some(entry=>entry.isIntersecting&&entry.intersectionRatio>=0.6);
+   if(!visible){if(timer)clearTimeout(timer);timer=undefined;return;}
+   if(!loaded){
+    loaded=true;
+    void client.rpc('get_social_post_view_counts',{p_post_ids:[post.id]}).then(({data})=>{
+     const row=Array.isArray(data)?data[0]:null;
+     if(row){setViews(Number(row.view_count)||0);setUniqueViewers(Number(row.unique_viewers)||0);}
+    });
+   }
+   if(recorded||timer)return;
+   timer=setTimeout(()=>{
+    timer=undefined;
+    recorded=true;
+    void client.rpc('record_social_post_view',{p_post_id:post.id,p_session_id:sessionId,p_dwell_ms:2500,p_source:source}).then(({data,error})=>{
+     if(error)return;
+     const row=Array.isArray(data)?data[0]:null;
+     if(row){setViews(Number(row.view_count)||0);setUniqueViewers(Number(row.unique_viewers)||0);}
+    });
+   },2500);
+  },{threshold:[0,0.6,1]});
+  observer.observe(element);
+  return()=>{if(timer)clearTimeout(timer);observer.disconnect();};
+ },[post.id]);
+ return <div ref={cardRef}><Card className="overflow-hidden"><CardContent className={compact?'p-4':'p-4 sm:p-5'}>
   <div className="flex items-center gap-3"><Link to={href} className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100 text-xs font-semibold text-neutral-600">{post.author.avatar_url?<img src={post.author.avatar_url} alt="" className="h-full w-full object-cover"/>:initials(post.author)}</Link><div className="min-w-0 flex-1"><Link to={href} className="block truncate text-sm font-semibold hover:underline">{post.author.full_name||post.author.username||'Пользователь KYRO'}</Link><p className="text-xs text-neutral-400">{post.author.username?'@'+post.author.username+' · ':''}{dateLabel(post.created_at)}</p></div></div>
   <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-7 text-neutral-800">{post.content}</p>
-  <div className="mt-4 flex items-center gap-4 border-t pt-3">{onLike?<button type="button" onClick={()=>onLike(post)} className={`flex items-center gap-2 text-xs ${post.liked?'font-semibold text-neutral-950':'text-neutral-500 hover:text-neutral-900'}`}><Heart size={15} fill={post.liked?'currentColor':'none'}/>{post.likes||0}</button>:<span className="flex items-center gap-2 text-xs text-neutral-500"><Heart size={15}/>{post.likes||0}</span>}<span className="flex items-center gap-1.5 text-xs text-neutral-400"><MessageCircle size={15}/>Обсуждение скоро</span></div>
- </CardContent></Card>;
+  <div className="mt-4 flex items-center gap-4 border-t pt-3">{onLike?<button type="button" onClick={()=>onLike(post)} className={`flex items-center gap-2 text-xs ${post.liked?'font-semibold text-neutral-950':'text-neutral-500 hover:text-neutral-900'}`}><Heart size={15} fill={post.liked?'currentColor':'none'}/>{post.likes||0}</button>:<span className="flex items-center gap-2 text-xs text-neutral-500"><Heart size={15}/>{post.likes||0}</span>}<span className="flex items-center gap-1.5 text-xs text-neutral-400"><MessageCircle size={15}/>Обсуждение скоро</span><span className="ml-auto flex items-center gap-1.5 text-xs text-neutral-400" title={uniqueViewers+' уникальных зрителей'}><Eye size={15}/>{views}</span></div>
+ </CardContent></Card></div>;
 }
+
 export function PostComposer({value,onChange,onSubmit,publishing}:{value:string;onChange:(value:string)=>void;onSubmit:()=>void;publishing:boolean}){
  return <Card className="overflow-hidden border-neutral-200 shadow-sm"><CardContent className="p-0"><div className="border-b bg-neutral-50/80 px-4 py-3"><p className="text-sm font-semibold">Создать публикацию</p><p className="mt-0.5 text-xs text-neutral-500">Поделитесь мыслью с сообществом KYRO</p></div><div className="p-4 sm:p-5"><textarea value={value} onChange={e=>onChange(e.target.value.slice(0,280))} maxLength={280} placeholder="Что у вас нового?" rows={4} className="min-h-28 w-full resize-y rounded-xl border bg-white px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-neutral-400 focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100"/><div className="mt-3 flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><span className={`text-xs tabular-nums ${value.length>=260?'text-amber-600':'text-neutral-400'}`}>{value.length}/280</span><span className="text-xs text-neutral-400">символов</span></div><button type="button" onClick={onSubmit} disabled={!value.trim()||publishing} className="inline-flex h-9 items-center justify-center rounded-lg bg-neutral-950 px-4 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40">{publishing?'Публикуем…':'Опубликовать'}</button></div></div></CardContent></Card>;
 }
