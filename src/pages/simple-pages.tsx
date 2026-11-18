@@ -68,9 +68,7 @@ export function SettingsPage(){
    if(!json.endpoint||!json.keys?.p256dh||!json.keys?.auth)throw new Error('Браузер вернул неполную push-подписку');
    const {data:{user}}=await supabase.auth.getUser();
    if(!user)throw new Error('Сессия завершена');
-   const {error:deleteError}=await supabase.from('kyro_push_subscriptions').delete().eq('user_id',user.id);
-   if(deleteError)throw deleteError;
-   const {error}=await supabase.from('kyro_push_subscriptions').insert({user_id:user.id,endpoint:json.endpoint,p256dh:json.keys.p256dh,auth_secret:json.keys.auth});
+   const {error}=await supabase.from('kyro_push_subscriptions').upsert({user_id:user.id,endpoint:json.endpoint,p256dh:json.keys.p256dh,auth_secret:json.keys.auth,last_seen_at:new Date().toISOString()},{onConflict:'endpoint'});
    if(error)throw error;
    setPushEnabled(true);toast.success('Push-подписка сохранена');
   }catch(error){toast.error(error instanceof Error?error.message:'Не удалось включить уведомления')}
