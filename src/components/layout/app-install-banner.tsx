@@ -1,0 +1,16 @@
+import {useEffect,useState} from 'react';
+import {Download,Smartphone,X,ChevronDown,ChevronUp} from 'lucide-react';
+import {Button} from '@/components/ui/button';
+
+type InstallPromptEvent=Event&{prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
+export function AppInstallBanner(){
+ const [visible,setVisible]=useState(false);const [expanded,setExpanded]=useState(false);const [promptEvent,setPromptEvent]=useState<InstallPromptEvent|null>(null);const [standalone,setStandalone]=useState(false);
+ useEffect(()=>{const isStandalone=window.matchMedia('(display-mode: standalone)').matches||Boolean((navigator as Navigator&{standalone?:boolean}).standalone);setStandalone(isStandalone);setVisible(!isStandalone&&localStorage.getItem('kyro-install-dismissed')!=='1');const handler=(event:Event)=>{event.preventDefault();setPromptEvent(event as InstallPromptEvent);};window.addEventListener('beforeinstallprompt',handler);const installed=()=>{setStandalone(true);setVisible(false);};window.addEventListener('appinstalled',installed);return()=>{window.removeEventListener('beforeinstallprompt',handler);window.removeEventListener('appinstalled',installed);};},[]);
+ if(!visible||standalone)return null;
+ const install=async()=>{if(!promptEvent)return;await promptEvent.prompt();const result=await promptEvent.userChoice;if(result.outcome==='accepted')setVisible(false);setPromptEvent(null);};
+ return <aside className="fixed inset-x-3 bottom-[calc(76px+env(safe-area-inset-bottom))] z-40 mx-auto max-w-2xl rounded-2xl border bg-white p-3 shadow-xl sm:bottom-4 sm:left-auto sm:right-5 sm:mx-0 sm:w-[min(520px,calc(100vw-2.5rem))]">
+  <div className="flex items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100"><Smartphone size={19}/></div><div className="min-w-0 flex-1"><p className="text-sm font-semibold">Установите KYRO на главный экран</p><p className="text-xs text-neutral-500">Быстрый запуск и удобный доступ как у приложения.</p></div><button type="button" onClick={()=>setExpanded(v=>!v)} aria-label="Инструкция" className="rounded-lg p-2 text-neutral-500 hover:bg-neutral-100">{expanded?<ChevronDown size={17}/>:<ChevronUp size={17}/>}</button><button type="button" onClick={()=>{localStorage.setItem('kyro-install-dismissed','1');setVisible(false)}} aria-label="Закрыть" className="rounded-lg p-2 text-neutral-400 hover:bg-neutral-100"><X size={16}/></button></div>
+  {expanded&&<div className="mt-3 space-y-2 border-t pt-3 text-xs leading-5 text-neutral-600"><p><b>iPhone / iPad (Safari):</b> нажмите «Поделиться» внизу браузера, выберите «На экран Домой», затем «Добавить».</p><p><b>Android (Chrome):</b> откройте меню ⋮ и выберите «Установить приложение» или «Добавить на главный экран».</p><p><b>Компьютер:</b> используйте значок установки в адресной строке браузера или меню браузера → «Установить KYRO».</p></div>}
+  <div className="mt-3 flex items-center justify-between gap-2"><button type="button" onClick={()=>setExpanded(v=>!v)} className="text-xs font-medium text-neutral-500">Как установить?</button>{promptEvent&&<Button size="sm" onClick={()=>void install()}><Download size={14}/>Установить</Button>}</div>
+ </aside>;
+}

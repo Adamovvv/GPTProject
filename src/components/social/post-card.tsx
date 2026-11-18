@@ -1,67 +1,28 @@
 import {useEffect,useRef,useState} from 'react';
-import {Eye,Heart,MessageCircle} from 'lucide-react';
+import {Eye,Heart,MessageCircle,Flag,Trash2,X} from 'lucide-react';
 import {Link} from 'react-router-dom';
 import {Card,CardContent} from '@/components/ui/card';
+import {Button} from '@/components/ui/button';
 import {supabase} from '@/lib/supabase';
+import {toast} from 'sonner';
 
 export type PostAuthor={id?:string;username:string|null;full_name:string|null;avatar_url:string|null};
 export type SharedPost={id:string;user_id?:string;content:string;created_at:string;author:PostAuthor;likes?:number;liked?:boolean};
 const dateLabel=(value:string)=>new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(value));
 const initials=(p:PostAuthor)=>((p.full_name||p.username||'KY').trim().slice(0,2).toUpperCase());
+function getViewSession(postId:string){const key='kyro:view-session:'+postId;const now=Date.now();try{const saved=localStorage.getItem(key);if(saved){const parsed=JSON.parse(saved) as {id:string;expires:number};if(parsed.expires>now)return parsed.id;}const id=crypto.randomUUID();localStorage.setItem(key,JSON.stringify({id,expires:now+30*60*1000}));return id;}catch{return crypto.randomUUID();}}
 
-function getViewSession(postId:string){
- const key='kyro:view-session:'+postId;
- const now=Date.now();
- try{
-  const saved=localStorage.getItem(key);
-  if(saved){const parsed=JSON.parse(saved) as {id:string;expires:number};if(parsed.expires>now)return parsed.id;}
-  const id=crypto.randomUUID();
-  localStorage.setItem(key,JSON.stringify({id,expires:now+30*60*1000}));
-  return id;
- }catch{return crypto.randomUUID();}
-}
-
-export function PostCard({post,onLike,compact=false}:{post:SharedPost;onLike?:(post:SharedPost)=>void;compact?:boolean}){
- const href=post.author.username?'/u/'+post.author.username:'/profile';
- const cardRef=useRef<HTMLDivElement>(null);
- const [views,setViews]=useState(0);
- const [uniqueViewers,setUniqueViewers]=useState(0);
- useEffect(()=>{
-  const client=supabase,element=cardRef.current;
-  if(!client||!element||typeof IntersectionObserver==='undefined')return;
-  let timer:ReturnType<typeof setTimeout>|undefined;
-  let loaded=false;
-  let recorded=false;
-  const sessionId=getViewSession(post.id);
-  const source=location.pathname.startsWith('/u/')?'profile':location.pathname==='/'?'dashboard':location.pathname==='/search'?'search':'feed';
-  const observer=new IntersectionObserver((entries)=>{
-   const visible=entries.some(entry=>entry.isIntersecting&&entry.intersectionRatio>=0.6);
-   if(!visible){if(timer)clearTimeout(timer);timer=undefined;return;}
-   if(!loaded){
-    loaded=true;
-    void client.rpc('get_social_post_view_counts',{p_post_ids:[post.id]}).then(({data})=>{
-     const row=Array.isArray(data)?data[0]:null;
-     if(row){setViews(Number(row.view_count)||0);setUniqueViewers(Number(row.unique_viewers)||0);}
-    });
-   }
-   if(recorded||timer)return;
-   timer=setTimeout(()=>{
-    timer=undefined;
-    recorded=true;
-    void client.rpc('record_social_post_view',{p_post_id:post.id,p_session_id:sessionId,p_dwell_ms:2500,p_source:source}).then(({data,error})=>{
-     if(error)return;
-     const row=Array.isArray(data)?data[0]:null;
-     if(row){setViews(Number(row.view_count)||0);setUniqueViewers(Number(row.unique_viewers)||0);}
-    });
-   },2500);
-  },{threshold:[0,0.6,1]});
-  observer.observe(element);
-  return()=>{if(timer)clearTimeout(timer);observer.disconnect();};
- },[post.id]);
+export function PostCard({post,onLike,onDelete,compact=false}:{post:SharedPost;onLike?:(post:SharedPost)=>void;onDelete?:(postId:string)=>void;compact?:boolean}){
+ const href=post.author.username?'/u/'+post.author.username:'/profile';const cardRef=useRef<HTMLDivElement>(null);
+ const [views,setViews]=useState(0);const [uniqueViewers,setUniqueViewers]=useState(0);const [userId,setUserId]=useState('');const [reportOpen,setReportOpen]=useState(false);const [reason,setReason]=useState('spam');const [details,setDetails]=useState('');const [reporting,setReporting]=useState(false);
+ useEffect(()=>{void supabase?.auth.getUser().then(({data})=>setUserId(data.user?.id||''));},[]);
+ useEffect(()=>{const client=supabase,element=cardRef.current;if(!client||!element||typeof IntersectionObserver==='undefined')return;let timer:ReturnType<typeof setTimeout>|undefined;let loaded=false;let recorded=false;const sessionId=getViewSession(post.id);const source=location.pathname.startsWith('/u/')?'profile':location.pathname==='/'?'dashboard':location.pathname==='/search'?'search':'feed';const observer=new IntersectionObserver(entries=>{const visible=entries.some(entry=>entry.isIntersecting&&entry.intersectionRatio>=0.6);if(!visible){if(timer)clearTimeout(timer);timer=undefined;return;}if(!loaded){loaded=true;void client.rpc('get_social_post_view_counts',{p_post_ids:[post.id]}).then(({data})=>{const row=Array.isArray(data)?data[0]:null;if(row){setViews(Number(row.view_count)||0);setUniqueViewers(Number(row.unique_viewers)||0);}});}if(recorded||timer)return;timer=setTimeout(()=>{timer=undefined;recorded=true;void client.rpc('record_social_post_view',{p_post_id:post.id,p_session_id:sessionId,p_dwell_ms:2500,p_source:source}).then(({data,error})=>{if(error)return;const row=Array.isArray(data)?data[0]:null;if(row){setViews(Number(row.view_count)||0);setUniqueViewers(Number(row.unique_viewers)||0);}});},2500);},{threshold:[0,0.6,1]});observer.observe(element);return()=>{if(timer)clearTimeout(timer);observer.disconnect();};},[post.id]);
+ const submitReport=async()=>{if(!supabase||!userId)return;setReporting(true);const {error}=await supabase.from('social_post_reports').insert({post_id:post.id,reporter_id:userId,reason,details:details.trim()});setReporting(false);if(error){toast.error(error.code==='23505'?'Вы уже отправляли жалобу на эту публикацию':'Не удалось отправить жалобу');return;}setReportOpen(false);setDetails('');toast.success('Жалоба отправлена модераторам');};
  return <div ref={cardRef}><Card className="overflow-hidden"><CardContent className={compact?'p-4':'p-4 sm:p-5'}>
-  <div className="flex items-center gap-3"><Link to={href} className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100 text-xs font-semibold text-neutral-600">{post.author.avatar_url?<img src={post.author.avatar_url} alt="" className="h-full w-full object-cover"/>:initials(post.author)}</Link><div className="min-w-0 flex-1"><Link to={href} className="block truncate text-sm font-semibold hover:underline">{post.author.full_name||post.author.username||'Пользователь KYRO'}</Link><p className="text-xs text-neutral-400">{post.author.username?'@'+post.author.username+' · ':''}{dateLabel(post.created_at)}</p></div></div>
+  <div className="flex items-center gap-3"><Link to={href} className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100 text-xs font-semibold text-neutral-600">{post.author.avatar_url?<img src={post.author.avatar_url} alt="" className="h-full w-full object-cover"/>:initials(post.author)}</Link><div className="min-w-0 flex-1"><Link to={href} className="block truncate text-sm font-semibold hover:underline">{post.author.full_name||post.author.username||'Пользователь KYRO'}</Link><p className="text-xs text-neutral-400">{post.author.username?'@'+post.author.username+' · ':''}{dateLabel(post.created_at)}</p></div>{userId&&post.user_id===userId&&onDelete&&<Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-neutral-400 hover:text-red-600" title="Удалить публикацию" onClick={()=>{if(window.confirm('Удалить эту публикацию?'))onDelete(post.id)}}><Trash2 size={16}/></Button>}{userId&&post.user_id!==userId&&<Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-neutral-400" title="Пожаловаться" onClick={()=>setReportOpen(v=>!v)}><Flag size={15}/></Button>}</div>
   <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-7 text-neutral-800">{post.content}</p>
   <div className="mt-4 flex items-center gap-4 border-t pt-3">{onLike?<button type="button" onClick={()=>onLike(post)} className={`flex items-center gap-2 text-xs ${post.liked?'font-semibold text-neutral-950':'text-neutral-500 hover:text-neutral-900'}`}><Heart size={15} fill={post.liked?'currentColor':'none'}/>{post.likes||0}</button>:<span className="flex items-center gap-2 text-xs text-neutral-500"><Heart size={15}/>{post.likes||0}</span>}<span className="flex items-center gap-1.5 text-xs text-neutral-400"><MessageCircle size={15}/>Обсуждение скоро</span><span className="ml-auto flex items-center gap-1.5 text-xs text-neutral-400" title={uniqueViewers+' уникальных зрителей'}><Eye size={15}/>{views}</span></div>
+  {reportOpen&&<div className="mt-4 rounded-xl border bg-neutral-50 p-3"><div className="mb-2 flex items-center justify-between"><p className="text-sm font-medium">Пожаловаться на публикацию</p><button type="button" onClick={()=>setReportOpen(false)} aria-label="Закрыть"><X size={15}/></button></div><select value={reason} onChange={e=>setReason(e.target.value)} className="h-10 w-full rounded-lg border bg-white px-3 text-sm"><option value="spam">Спам или мошенничество</option><option value="harassment">Травля или преследование</option><option value="hate">Ненависть или дискриминация</option><option value="misinformation">Ложная информация</option><option value="nudity">Неприемлемый контент</option><option value="other">Другое</option></select><textarea value={details} onChange={e=>setDetails(e.target.value.slice(0,500))} placeholder="Дополнительные сведения (необязательно)" rows={2} className="mt-2 w-full rounded-lg border bg-white p-3 text-sm"/><div className="mt-2 flex justify-end"><Button size="sm" onClick={()=>void submitReport()} disabled={reporting}>{reporting?'Отправляем…':'Отправить жалобу'}</Button></div></div>}
  </CardContent></Card></div>;
 }
 
