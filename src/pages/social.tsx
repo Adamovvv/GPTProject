@@ -39,7 +39,7 @@ export function SocialPage(){
  const forYouPosts=useMemo(()=>{
   const now=Date.now();const ranked=posts.map(post=>{const author=post.user_id||post.author.id||'';const tags=peopleInterests[author]||[];const matched=tags.filter(tag=>myInterests.includes(tag)).length;const ageHours=Math.max(0,(now-new Date(post.created_at).getTime())/3600000);const freshness=Math.exp(-ageHours/72);const followed=following.includes(author);const behavior=(likedAuthors.includes(author)?5:0)+(viewedAuthors.includes(author)?2:0);const engagement=Math.log1p(post.likes||0);return {post,score:matched*8+(followed?4:0)+behavior+freshness*3+engagement*0.7};}).sort((a,b)=>b.score-a.score);
   const fingerprints=new Set<string>();const result:SharedPost[]=[];
-  for(const item of ranked){const post=item.post;const author=post.user_id||post.author.id||post.id;if(hideSeenPosts&&seenPostIds.includes(post.id))continue;const fingerprint=normalize(post.content);if(fingerprint.length>24&&fingerprints.has(fingerprint))continue;if(fingerprint.length>24)fingerprints.add(fingerprint);result.push(post);}
+  for(const item of ranked){const post=item.post;if(hideSeenPosts&&seenPostIds.includes(post.id))continue;const fingerprint=normalize(post.content);if(fingerprint.length>24&&fingerprints.has(fingerprint))continue;if(fingerprint.length>24)fingerprints.add(fingerprint);result.push(post);}
   return result;
  },[posts,peopleInterests,myInterests,following,likedAuthors,viewedAuthors,seenPostIds,hideSeenPosts]);
  const visiblePosts=useMemo(()=>{if(tab==='following')return posts.filter(p=>following.includes(p.user_id||'')||p.user_id===userId);return forYouPosts;},[tab,posts,following,userId,forYouPosts]);
