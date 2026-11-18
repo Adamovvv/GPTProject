@@ -1,6 +1,6 @@
 import {useCallback,useEffect,useState} from 'react';
 import {Link,useNavigate,useParams} from 'react-router-dom';
-import {BadgeCheck,Loader2,LogOut,Settings,UserRound} from 'lucide-react';
+import {BadgeCheck,Loader2,Settings,UserRound} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {Card,CardContent} from '@/components/ui/card';
 import {supabase} from '@/lib/supabase';
@@ -23,7 +23,6 @@ export function ProfilePage(){
  const save=async()=>{if(!supabase||!profile)return;const clean=form.username.trim().toLowerCase();if(!/^[a-z0-9_]{3,24}$/.test(clean)){toast.error('Никнейм: 3–24 символа, латиница, цифры и _');return;}setSaving(true);const {data,error}=await supabase.from('profiles').update({username:clean,full_name:form.full_name.trim()||null,avatar_url:form.avatar_url.trim()||null,bio:form.bio.trim()}).eq('id',profile.id).select('id,username,full_name,avatar_url,bio,is_verified').single();setSaving(false);if(error){toast.error(error.code==='23505'?'Этот никнейм уже занят':'Не удалось сохранить профиль');return;}setProfile(data as Profile);setEditing(false);toast.success('Профиль обновлён');};
  const toggleFollow=async()=>{if(!supabase||!profile||profile.id===me)return;const {error}=isFollowing?await supabase.from('social_follows').delete().eq('follower_id',me).eq('following_id',profile.id):await supabase.from('social_follows').insert({follower_id:me,following_id:profile.id});if(error){toast.error('Не удалось изменить подписку');return;}setIsFollowing(v=>!v);setFollowers(v=>v+(isFollowing?-1:1));};
  const toggleLike=async(post:SharedPost)=>{if(!supabase||!me)return;const {error}=post.liked?await supabase.from('social_likes').delete().eq('post_id',post.id).eq('user_id',me):await supabase.from('social_likes').insert({post_id:post.id,user_id:me});if(error){toast.error('Не удалось обновить отметку');return;}setPosts(v=>v.map(p=>p.id===post.id?{...p,liked:!p.liked,likes:(p.likes||0)+(p.liked?-1:1)}:p));};
- const logout=async()=>{if(!supabase)return;const {error}=await supabase.auth.signOut({scope:'local'});if(error){toast.error('Не удалось выйти. Попробуйте ещё раз.');return;}toast.success('Вы вышли из аккаунта');nav('/login',{replace:true});};
  if(loading)return <div className="flex justify-center py-20 text-neutral-400"><Loader2 className="animate-spin"/></div>;
  if(!profile)return <Card><CardContent className="py-16 text-center"><UserRound className="mx-auto text-neutral-300" size={30}/><h1 className="mt-3 text-lg font-semibold">Профиль не найден</h1><p className="mt-1 text-sm text-neutral-500">Возможно, пользователь изменил никнейм.</p><Link to="/social" className="mt-4 inline-block text-sm underline">Вернуться в ленту</Link></CardContent></Card>;
  return <div className="mx-auto max-w-3xl"><div className="mb-7"><p className="text-xs font-semibold uppercase tracking-[.18em] text-neutral-400">KYRO / PROFILE</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">Профиль</h1></div>
