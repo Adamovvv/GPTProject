@@ -128,9 +128,6 @@ export function SocialPage(){
     </div>
     {loading?<div className="flex justify-center py-16 text-neutral-400"><Loader2 className="animate-spin"/></div>:visiblePosts.length===0?<Card><CardContent className="py-14 text-center"><Compass className="mx-auto text-neutral-300" size={28}/><p className="mt-3 font-medium">{tab==='following'?'Нет публикаций от подписок':'Пока нет публикаций для ленты'}</p><p className="mt-1 text-sm text-neutral-500">{tab==='following'?'Подпишитесь на интересных авторов.':'Добавьте интересы или опубликуйте первую запись.'}</p></CardContent></Card>:<div className="space-y-3">{visiblePosts.map(post=><PostCard key={post.id} post={post} onLike={toggleLike}/>)}</div>}
    </section>
-   <aside className="space-y-5">
-
-   </aside>
-  </div>
+   </div>
  </div>;
 }
