@@ -15,6 +15,18 @@ Deno.serve(async(req)=>{
   const auth=createClient(url,anon,{auth:{persistSession:false,autoRefreshToken:false}});
   const ip=req.headers.get('cf-connecting-ip')||req.headers.get('x-forwarded-for')?.split(',')[0].trim()||'unknown';
   const buckets=await Promise.all([hashBucket('ip-user:'+ip+':'+normalized),hashBucket('username:'+normalized)]);
+  if(action==='register'){
+   const registrationBuckets=await Promise.all([
+    hashBucket('register-ip-hour:'+ip),
+    hashBucket('register-ip-day:'+ip)
+   ]);
+   const registrationLimits=await Promise.all([
+    admin.rpc('kyro_consume_auth_attempt',{p_bucket_hash:registrationBuckets[0],p_limit:4,p_window_seconds:3600}),
+    admin.rpc('kyro_consume_auth_attempt',{p_bucket_hash:registrationBuckets[1],p_limit:12,p_window_seconds:86400})
+   ]);
+   if(registrationLimits.some(({error})=>error))throw new Error('Registration rate limit check failed');
+   if(registrationLimits.some(({data})=>data!==true))return json({error:'Слишком много регистраций с этого подключения. Попробуйте позже.'},429);
+  }
   const limits=await Promise.all(buckets.map((p_bucket_hash)=>admin.rpc('kyro_consume_auth_attempt',{p_bucket_hash,p_limit:8,p_window_seconds:900})));
   if(limits.some(({error})=>error))throw new Error('Rate limit check failed');
   if(limits.some(({data})=>data!==true))return json({error:'Слишком много попыток. Повторите позже.'},429);
