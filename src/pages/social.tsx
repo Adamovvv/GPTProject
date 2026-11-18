@@ -7,7 +7,7 @@ import {toast} from 'sonner';
 import {PostCard,PostComposer,type SharedPost,type PostAuthor} from '@/components/social/post-card';
 
 type Profile=PostAuthor&{id:string;bio?:string};
-type FeedTab='for-you'|'following'|'all';
+type FeedTab='for-you'|'following';
 
 export function SocialPage(){
  const [userId,setUserId]=useState('');
@@ -86,7 +86,6 @@ export function SocialPage(){
 
  const visiblePosts=useMemo(()=>{
   if(tab==='following')return posts.filter(p=>following.includes(p.user_id||'')||p.user_id===userId);
-  if(tab==='all')return posts;
   return forYouPosts;
  },[tab,posts,following,userId,forYouPosts]);
 
@@ -124,7 +123,6 @@ export function SocialPage(){
     <div className="flex flex-wrap items-center gap-2">
      <button onClick={()=>setTab('for-you')} className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm ${tab==='for-you'?'bg-neutral-900 text-white':'border bg-white text-neutral-500'}`}><Sparkles size={15}/>Для вас</button>
      <button onClick={()=>setTab('following')} className={`rounded-full px-4 py-2 text-sm ${tab==='following'?'bg-neutral-900 text-white':'border bg-white text-neutral-500'}`}>Подписки</button>
-     <button onClick={()=>setTab('all')} className={`rounded-full px-4 py-2 text-sm ${tab==='all'?'bg-neutral-900 text-white':'border bg-white text-neutral-500'}`}>Все</button>
     </div>
     {loading?<div className="flex justify-center py-16 text-neutral-400"><Loader2 className="animate-spin"/></div>:visiblePosts.length===0?<Card><CardContent className="py-14 text-center"><Compass className="mx-auto text-neutral-300" size={28}/><p className="mt-3 font-medium">{tab==='following'?'Нет публикаций от подписок':'Пока нет публикаций для ленты'}</p><p className="mt-1 text-sm text-neutral-500">{tab==='following'?'Подпишитесь на интересных авторов.':'Добавьте интересы или опубликуйте первую запись.'}</p></CardContent></Card>:<div className="space-y-3">{visiblePosts.map(post=><PostCard key={post.id} post={post} onLike={toggleLike}/>)}</div>}
    </section>
