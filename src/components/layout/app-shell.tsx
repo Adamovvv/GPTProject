@@ -8,7 +8,7 @@ import {APP_VERSION} from '@/config/app';
 import {supabase} from '@/lib/supabase';
 const links=[{to:'/',label:'Главная',icon:Home},{to:'/social',label:'Лента',icon:Compass},{to:'/profile',label:'Профиль',icon:UserRound}];
 const extra=[{to:'/market',label:'Маркет',icon:ShoppingBag},{to:'/events',label:'События',icon:CalendarDays},{to:'/messages',label:'Сообщения',icon:MessageCircle}];
-const mobileLinks=[links[0],links[1],{to:'/messages',label:'Сообщения',icon:MessageCircle},links[2]];
+const mobileLinks=[links[0],links[1],{to:'/messages',label:'Сообщения',icon:MessageCircle},{to:'/settings',label:'Настройки',icon:Settings}];
 export function AppShell(){
  const [dark,setDark]=useState(()=>localStorage.getItem('kyro-theme')==='dark');const [isAdmin,setIsAdmin]=useState(false);const [search,setSearch]=useState('');const nav=useNavigate();
  useEffect(()=>{const client=supabase;if(!client)return;let active=true;const check=async()=>{const {data:{user}}=await client.auth.getUser();if(!user){if(active)setIsAdmin(false);return;}const [adminCheck,moderatorCheck,roleCheck]=await Promise.all([client.rpc('is_kyro_admin'),client.rpc('is_kyro_moderator'),client.from('kyro_user_roles').select('role').eq('user_id',user.id).maybeSingle()]);if(active)setIsAdmin(adminCheck.data===true||moderatorCheck.data===true||['owner','admin','moderator'].includes(roleCheck.data?.role||''));};void check();const {data:{subscription}}=client.auth.onAuthStateChange(()=>{window.setTimeout(()=>{void check()},0)});return()=>{active=false;subscription.unsubscribe()}},[]);
