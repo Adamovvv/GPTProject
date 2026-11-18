@@ -1,5 +1,5 @@
 import {useQuery} from '@tanstack/react-query';
-import {ArrowUpRight,Bell,CalendarDays,Compass,MessageCircle,Plus,Search,Sparkles,Clock,MapPin} from 'lucide-react';
+import {ArrowUpRight,Bell,CalendarDays,Compass,MessageCircle,Plus,Search,Clock,MapPin} from 'lucide-react';
 import {Link} from 'react-router-dom';
 import {Button} from '@/components/ui/button';
 import {Card,CardContent} from '@/components/ui/card';
