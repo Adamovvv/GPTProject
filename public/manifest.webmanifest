@@ -1,0 +1,15 @@
+{
+  "id": "/",
+  "name": "KYRO — Everything. Connected.",
+  "short_name": "KYRO",
+  "description": "Сообщество KYRO: люди, публикации, объявления и события.",
+  "lang": "ru",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f5f5",
+  "theme_color": "#f5f5f5",
+  "icons": [
+    {"src": "/kyro-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+  ]
+}

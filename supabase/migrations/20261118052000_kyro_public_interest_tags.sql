@@ -1,0 +1,1 @@
+create policy "Interests are readable for recommendations" on public.kyro_interests for select to authenticated using (true);
