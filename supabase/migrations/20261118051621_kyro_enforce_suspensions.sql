@@ -1,0 +1,4 @@
+create policy "Active accounts only can create social posts" on public.social_posts as restrictive for insert to authenticated with check (not public.kyro_is_suspended((select auth.uid())));
+create policy "Active accounts only can create comments" on public.social_comments as restrictive for insert to authenticated with check (not public.kyro_is_suspended((select auth.uid())));
+create policy "Active accounts only can create likes" on public.social_likes as restrictive for insert to authenticated with check (not public.kyro_is_suspended((select auth.uid())));
+create policy "Active accounts only can follow" on public.social_follows as restrictive for insert to authenticated with check (not public.kyro_is_suspended((select auth.uid())));
