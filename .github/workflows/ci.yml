@@ -13,6 +13,8 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
       - name: Report dependency advisories
         run: |
           npm audit --json > npm-audit.json || true
