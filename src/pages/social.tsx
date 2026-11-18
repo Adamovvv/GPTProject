@@ -8,7 +8,6 @@ import {PostCard,PostComposer,type SharedPost,type PostAuthor} from '@/component
 
 type Profile=PostAuthor&{id:string;bio?:string};
 type FeedTab='for-you'|'following'|'all';
-const INTERESTS=['Технологии','Дизайн','Бизнес','Музыка','Спорт','Путешествия','Искусство','Образование','Игры','Кино','Наука','Еда'];
 
 export function SocialPage(){
  const [userId,setUserId]=useState('');
@@ -114,19 +113,14 @@ export function SocialPage(){
   setPosts(v=>v.map(p=>p.id===post.id?{...p,liked:!p.liked,likes:(p.likes||0)+(p.liked?-1:1)}:p));
  };
  const suggestions=useMemo(()=>people.filter(p=>!following.includes(p.id)).sort((a,b)=>(peopleInterests[b.id]||[]).filter(x=>myInterests.includes(x)).length-(peopleInterests[a.id]||[]).filter(x=>myInterests.includes(x)).length),[people,following,peopleInterests,myInterests]);
- const saveInterests=async()=>{
-  if(!supabase||!userId)return;
-  const {error:delError}=await supabase.from('kyro_interests').delete().eq('user_id',userId);
-  if(delError){toast.error('Не удалось сохранить интересы');return;}
-  if(myInterests.length){const {error}=await supabase.from('kyro_interests').insert(myInterests.map(interest=>({user_id:userId,interest})));if(error){toast.error('Не удалось сохранить интересы');return;}}
-  toast.success('Интересы обновлены');void load();
- };
+
 
  return <div className="mx-auto max-w-6xl">
   <div className="mb-7"><p className="text-xs font-semibold uppercase tracking-[.18em] text-neutral-400">KYRO / COMMUNITY</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">Лента</h1><p className="mt-2 text-sm text-neutral-500">Публикации, подобранные под ваши интересы и подписки.</p></div>
   <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
    <section className="min-w-0 space-y-5">
     <PostComposer value={content} onChange={setContent} onSubmit={()=>void publish()} publishing={publishing}/>
+    <Card><CardContent className="p-4 sm:p-5"><div className="mb-4 flex items-center justify-between"><h2 className="font-semibold">Рекомендации пользователей</h2><Users size={17} className="text-neutral-400"/></div>{suggestions.length===0?<p className="text-sm text-neutral-500">Пока нет подходящих профилей. Рекомендации появятся по мере активности сообщества.</p>:<div className="grid gap-3 sm:grid-cols-2">{suggestions.slice(0,6).map(p=><div key={p.id} className="flex min-w-0 items-center gap-3"><Link to={p.username?'/u/'+p.username:'/profile'} className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100 text-xs font-semibold">{p.avatar_url?<img src={p.avatar_url} alt="" className="h-full w-full object-cover"/>:(p.full_name||p.username||'KY').slice(0,2).toUpperCase()}</Link><div className="min-w-0 flex-1"><Link to={p.username?'/u/'+p.username:'/profile'} className="block truncate text-sm font-medium hover:underline">{p.full_name||p.username||'Пользователь'}</Link><p className="truncate text-xs text-neutral-400">{(peopleInterests[p.id]||[]).filter(x=>myInterests.includes(x)).length>0?'Есть общие интересы':p.username?'@'+p.username:'Участник KYRO'}</p></div><button onClick={()=>void toggleFollow(p.id)} aria-label="Подписаться" className="rounded-full border p-2 hover:bg-neutral-100"><UserPlus size={15}/></button></div>)}</div>}</CardContent></Card>
     <div className="flex flex-wrap items-center gap-2">
      <button onClick={()=>setTab('for-you')} className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm ${tab==='for-you'?'bg-neutral-900 text-white':'border bg-white text-neutral-500'}`}><Sparkles size={15}/>Для вас</button>
      <button onClick={()=>setTab('following')} className={`rounded-full px-4 py-2 text-sm ${tab==='following'?'bg-neutral-900 text-white':'border bg-white text-neutral-500'}`}>Подписки</button>
@@ -135,8 +129,7 @@ export function SocialPage(){
     {loading?<div className="flex justify-center py-16 text-neutral-400"><Loader2 className="animate-spin"/></div>:visiblePosts.length===0?<Card><CardContent className="py-14 text-center"><Compass className="mx-auto text-neutral-300" size={28}/><p className="mt-3 font-medium">{tab==='following'?'Нет публикаций от подписок':'Пока нет публикаций для ленты'}</p><p className="mt-1 text-sm text-neutral-500">{tab==='following'?'Подпишитесь на интересных авторов.':'Добавьте интересы или опубликуйте первую запись.'}</p></CardContent></Card>:<div className="space-y-3">{visiblePosts.map(post=><PostCard key={post.id} post={post} onLike={toggleLike}/>)}</div>}
    </section>
    <aside className="space-y-5">
-    <Card><CardContent className="p-5"><div className="mb-3 flex items-center justify-between"><h2 className="font-semibold">Мои интересы</h2><span className="text-xs text-neutral-400">Для ленты</span></div><div className="flex flex-wrap gap-2">{INTERESTS.map(tag=><button key={tag} onClick={()=>setMyInterests(v=>v.includes(tag)?v.filter(x=>x!==tag):[...v,tag])} className={"rounded-full border px-3 py-1.5 text-xs "+(myInterests.includes(tag)?"border-neutral-900 bg-neutral-900 text-white":"bg-white text-neutral-600")}>{tag}</button>)}</div><button onClick={()=>void saveInterests()} className="mt-3 text-xs font-semibold text-neutral-700 hover:underline">Сохранить интересы</button></CardContent></Card>
-    <Card><CardContent className="p-5"><div className="mb-4 flex items-center justify-between"><h2 className="font-semibold">Люди по интересам</h2><Users size={17} className="text-neutral-400"/></div>{suggestions.length===0?<p className="text-sm text-neutral-500">Пока нет подходящих профилей. Добавьте интересы, чтобы улучшить подбор.</p>:<div className="space-y-4">{suggestions.map(p=><div key={p.id} className="flex items-center gap-3"><Link to={p.username?'/u/'+p.username:'/profile'} className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-neutral-100 text-xs font-semibold">{p.avatar_url?<img src={p.avatar_url} alt="" className="h-full w-full object-cover"/>:(p.full_name||p.username||'KY').slice(0,2).toUpperCase()}</Link><div className="min-w-0 flex-1"><Link to={p.username?'/u/'+p.username:'/profile'} className="block truncate text-sm font-medium hover:underline">{p.full_name||p.username||'Пользователь'}</Link><p className="truncate text-xs text-neutral-400">{(peopleInterests[p.id]||[]).filter(x=>myInterests.includes(x)).length>0?'Есть общие интересы':p.username?'@'+p.username:'Участник KYRO'}</p></div><button onClick={()=>void toggleFollow(p.id)} aria-label="Подписаться" className="rounded-full border p-2 hover:bg-neutral-100"><UserPlus size={15}/></button></div>)}</div>}<Link to="/profile" className="mt-5 block border-t pt-4 text-xs font-medium text-neutral-500 hover:text-neutral-900">Открыть мой профиль →</Link></CardContent></Card>
+
    </aside>
   </div>
  </div>;
