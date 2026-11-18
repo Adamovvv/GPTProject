@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
-import {Link} from 'react-router-dom';
-import {BadgeCheck,Bell,CheckCircle2,Loader2,ShieldCheck,Smartphone} from 'lucide-react';
+import {Link,useNavigate} from 'react-router-dom';
+import {BadgeCheck,Bell,CheckCircle2,Loader2,LogOut,ShieldCheck,Smartphone} from 'lucide-react';
 import {Card,CardContent} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
@@ -16,6 +16,7 @@ function decodeVapidKey(value:string){
 }
 
 export function SettingsPage(){
+ const navigate=useNavigate();
  const [userId,setUserId]=useState('');
  const [verified,setVerified]=useState(false);
  const [verificationStatus,setVerificationStatus]=useState<string|null>(null);
@@ -101,6 +102,7 @@ export function SettingsPage(){
   </CardContent></Card>
   <Card><CardContent className="divide-y p-0">
    <Link to="/privacy" className="flex items-center gap-3 p-5 hover:bg-neutral-50"><ShieldCheck size={19}/><span className="text-sm font-medium">Конфиденциальность</span></Link>
+   <button onClick={async()=>{if(!supabase)return;const {error}=await supabase.auth.signOut({scope:'local'});if(error){toast.error('Не удалось выйти из аккаунта');return;}navigate('/login',{replace:true});}} className="flex w-full items-center gap-3 p-5 text-left text-sm font-medium text-red-600 hover:bg-neutral-50"><LogOut size={19}/>Выйти из аккаунта</button>
    <div className="flex items-center justify-between p-5"><span className="text-sm font-medium">Версия платформы</span><span className="text-sm text-neutral-500">KYRO v{APP_VERSION}</span></div>
   </CardContent></Card>
  </div>;
