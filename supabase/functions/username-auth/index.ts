@@ -43,6 +43,8 @@ Deno.serve(async(req)=>{
    const {data:profile,error:profileError}=await admin.from('profiles').select('id').ilike('username',normalized).maybeSingle();
    if(profileError)throw profileError;
    if(!profile)return json({error:'Неверный username или пароль'},401);
+   const {data:suspension}=await admin.from('kyro_user_suspensions').select('expires_at').eq('user_id',profile.id).maybeSingle();
+   if(suspension&&(!suspension.expires_at||new Date(suspension.expires_at).getTime()>Date.now()))return json({error:'Аккаунт временно или навсегда заблокирован. Обратитесь в поддержку KYRO.'},403);
    const {data:userData,error:userError}=await admin.auth.admin.getUserById(profile.id);
    if(userError||!userData.user?.email)return json({error:'Неверный username или пароль'},401);
    email=userData.user.email;
