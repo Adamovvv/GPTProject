@@ -1,0 +1,12 @@
+revoke all on function public.is_kyro_admin() from public,anon;
+revoke all on function public.is_kyro_moderator() from public,anon;
+revoke all on function public.kyro_has_role(text[]) from public,anon;
+revoke all on function public.kyro_is_suspended(uuid) from public,anon;
+revoke all on function public.kyro_set_user_role(uuid,text) from public,anon;
+revoke all on function public.kyro_set_user_suspension(uuid,text,integer) from public,anon;
+grant execute on function public.is_kyro_admin() to authenticated;
+grant execute on function public.is_kyro_moderator() to authenticated;
+grant execute on function public.kyro_has_role(text[]) to authenticated;
+grant execute on function public.kyro_is_suspended(uuid) to authenticated;
+grant execute on function public.kyro_set_user_role(uuid,text) to authenticated;
+grant execute on function public.kyro_set_user_suspension(uuid,text,integer) to authenticated;
