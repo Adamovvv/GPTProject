@@ -25,6 +25,9 @@ export function SettingsPage(){
  const [savingVerification,setSavingVerification]=useState(false);
  const [pushBusy,setPushBusy]=useState(false);
  const [pushEnabled,setPushEnabled]=useState(false);
+ const [feedMax,setFeedMax]=useState(3);
+ const [feedHideSeen,setFeedHideSeen]=useState(true);
+ const [savingFeed,setSavingFeed]=useState(false);
  useEffect(()=>{
   let active=true;
   void (async()=>{
@@ -32,6 +35,8 @@ export function SettingsPage(){
    const {data:{user}}=await supabase.auth.getUser();
    if(!user){setLoading(false);return;}
    setUserId(user.id);
+   const {data:feedPrefs}=await supabase.from('kyro_feed_preferences').select('max_posts_per_author,hide_seen_posts').eq('user_id',user.id).maybeSingle();
+   if(active&&feedPrefs){setFeedMax(feedPrefs.max_posts_per_author);setFeedHideSeen(feedPrefs.hide_seen_posts);}
    const [{data:profile},{data:request}]=await Promise.all([
     supabase.from('profiles').select('is_verified').eq('id',user.id).maybeSingle(),
     supabase.from('kyro_verification_requests').select('status,note').eq('user_id',user.id).order('created_at',{ascending:false}).limit(1).maybeSingle()
@@ -45,6 +50,7 @@ export function SettingsPage(){
   })();
   return()=>{active=false};
  },[]);
+ const saveFeedPreferences=async()=>{if(!supabase||!userId)return;setSavingFeed(true);const {error}=await supabase.from('kyro_feed_preferences').upsert({user_id:userId,max_posts_per_author:feedMax,hide_seen_posts:feedHideSeen,updated_at:new Date().toISOString()},{onConflict:'user_id'});setSavingFeed(false);if(error){toast.error('Не удалось сохранить настройки ленты');return;}toast.success('Настройки ленты сохранены');};
  const requestVerification=async()=>{
   if(!supabase||!userId)return;
   setSavingVerification(true);
