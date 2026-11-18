@@ -1,6 +1,6 @@
 import {useCallback,useEffect,useState} from 'react';
 import {Navigate} from 'react-router-dom';
-import {Activity,CalendarDays,FileText,Loader2,RefreshCw,Shield,ShoppingBag,Trash2,Users,MessageSquare,Lock,Unlock} from 'lucide-react';
+import {CalendarDays,FileText,Loader2,RefreshCw,Shield,ShoppingBag,Trash2,Users,MessageSquare,Lock,Unlock} from 'lucide-react';
 import {Card,CardContent} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
 import {supabase} from '@/lib/supabase';
