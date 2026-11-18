@@ -21,6 +21,9 @@ Deno.serve(async(req)=>{
   const {data:notice,error:noticeError}=await admin.from('kyro_notifications').select('id,user_id,title,body,target_url').eq('id',notificationId).eq('user_id',user.id).maybeSingle();
   if(noticeError)throw noticeError;
   if(!notice)return json({error:'Notification not found'},404);
+  const {data:claimed,error:claimError}=await admin.rpc('kyro_claim_push_delivery',{p_notification_id:notice.id});
+  if(claimError)throw claimError;
+  if(claimed!==true)return json({sent:0,deduplicated:true});
   const candidate=webpush.generateVAPIDKeys();
   const {data:keyRows,error:keyError}=await admin.rpc('kyro_ensure_vapid_keys',{p_public:candidate.publicKey,p_private:candidate.privateKey});
   if(keyError)throw keyError;
