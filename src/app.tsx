@@ -15,7 +15,6 @@ const NotificationsPage=lazy(()=>import('@/pages/notifications').then(m=>({defau
 const ProfilePage=lazy(()=>import('@/pages/profile').then(m=>({default:m.ProfilePage})));
 const EventsPage=lazy(()=>import('@/pages/events').then(m=>({default:m.EventsPage})));
 const AdminPage=lazy(()=>import('@/pages/admin').then(m=>({default:m.AdminPage})));
-const PremiumPage=lazy(()=>import('@/pages/premium').then(m=>({default:m.PremiumPage})));
 const SettingsPage=lazy(()=>import('@/pages/simple-pages').then(m=>({default:m.SettingsPage})));
 const MarketPage=lazy(()=>import('@/pages/simple-pages').then(m=>({default:()=>createElement(m.PlaceholderPage,{title:'Market',description:'Каталог товаров и объявления сообщества.'})})));
 const MessagesPage=lazy(()=>import('@/pages/simple-pages').then(m=>({default:()=>createElement(m.PlaceholderPage,{title:'Сообщения',description:'Личные диалоги и переписки.'})})));
@@ -35,7 +34,7 @@ export default function App(){
    <Route path="/messages" element={<Suspense fallback={<PageLoader/>}><MessagesPage/></Suspense>}/><Route path="/notifications" element={<Suspense fallback={<PageLoader/>}><NotificationsPage/></Suspense>}/>
    <Route path="/search" element={<Suspense fallback={<PageLoader/>}><SearchPage/></Suspense>}/><Route path="/profile" element={<Suspense fallback={<PageLoader/>}><ProfilePage/></Suspense>}/>
    <Route path="/u/:username" element={<Suspense fallback={<PageLoader/>}><ProfilePage/></Suspense>}/><Route path="/settings" element={<Suspense fallback={<PageLoader/>}><SettingsPage/></Suspense>}/>
-   <Route path="/premium" element={<Suspense fallback={<PageLoader/>}><PremiumPage/></Suspense>}/><Route path="/admin" element={<Suspense fallback={<PageLoader/>}><AdminPage/></Suspense>}/>
+   <Route path="/admin" element={<Suspense fallback={<PageLoader/>}><AdminPage/></Suspense>}/>
    <Route path="*" element={<Navigate to="/" replace/>}/>
   </Route>
  </Routes><Toaster position="top-right"/></>;
