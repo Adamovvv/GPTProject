@@ -27,16 +27,16 @@ function Protected({children}:{children:React.ReactNode}){
  if(!ready)return <PageLoader/>;if(!ok)return <Navigate to="/login" replace state={{from:loc}}/>;return <>{children}</>;
 }
 export default function App(){
- return <Suspense fallback={<PageLoader/>}><Routes>
-  <Route path="/login" element={<AuthPage/>}/><Route path="/privacy" element={<PrivacyPage/>}/>
+ return <><Routes>
+  <Route path="/login" element={<Suspense fallback={<PageLoader/>}><AuthPage/></Suspense>}/><Route path="/privacy" element={<Suspense fallback={<PageLoader/>}><PrivacyPage/></Suspense>}/>
   <Route element={<Protected><AppShell/></Protected>}>
-   <Route index element={<DashboardPage/>}/><Route path="/social" element={<SocialPage/>}/>
-   <Route path="/market" element={<MarketPage/>}/><Route path="/events" element={<EventsPage/>}/>
-   <Route path="/messages" element={<MessagesPage/>}/><Route path="/notifications" element={<NotificationsPage/>}/>
-   <Route path="/search" element={<SearchPage/>}/><Route path="/profile" element={<ProfilePage/>}/>
-   <Route path="/u/:username" element={<ProfilePage/>}/><Route path="/settings" element={<SettingsPage/>}/>
-   <Route path="/premium" element={<PremiumPage/>}/><Route path="/admin" element={<AdminPage/>}/>
+   <Route index element={<Suspense fallback={<PageLoader/>}><DashboardPage/></Suspense>}/><Route path="/social" element={<Suspense fallback={<PageLoader/>}><SocialPage/></Suspense>}/>
+   <Route path="/market" element={<Suspense fallback={<PageLoader/>}><MarketPage/></Suspense>}/><Route path="/events" element={<Suspense fallback={<PageLoader/>}><EventsPage/></Suspense>}/>
+   <Route path="/messages" element={<Suspense fallback={<PageLoader/>}><MessagesPage/></Suspense>}/><Route path="/notifications" element={<Suspense fallback={<PageLoader/>}><NotificationsPage/></Suspense>}/>
+   <Route path="/search" element={<Suspense fallback={<PageLoader/>}><SearchPage/></Suspense>}/><Route path="/profile" element={<Suspense fallback={<PageLoader/>}><ProfilePage/></Suspense>}/>
+   <Route path="/u/:username" element={<Suspense fallback={<PageLoader/>}><ProfilePage/></Suspense>}/><Route path="/settings" element={<Suspense fallback={<PageLoader/>}><SettingsPage/></Suspense>}/>
+   <Route path="/premium" element={<Suspense fallback={<PageLoader/>}><PremiumPage/></Suspense>}/><Route path="/admin" element={<Suspense fallback={<PageLoader/>}><AdminPage/></Suspense>}/>
    <Route path="*" element={<Navigate to="/" replace/>}/>
   </Route>
- </Routes><Toaster position="top-right"/></Suspense>;
+ </Routes><Toaster position="top-right"/></>;
 }
