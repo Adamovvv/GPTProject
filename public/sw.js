@@ -1,4 +1,4 @@
-const CACHE='kyro-shell-v7';
+const CACHE='kyro-shell-v8';
 const ASSET_CACHE='kyro-assets-v1';
 const SHELL=['/','/manifest.webmanifest','/kyro-icon.svg'];
 
