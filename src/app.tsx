@@ -1,3 +1,42 @@
-import type React from 'react';import {Navigate,Route,Routes,useLocation} from 'react-router-dom';import {useEffect,useState} from 'react';import {AppShell} from '@/components/layout/app-shell';import {DashboardPage} from '@/pages/dashboard';import {AuthPage} from '@/pages/auth';import {PrivacyPage} from '@/pages/privacy';import {SettingsPage,PlaceholderPage} from '@/pages/simple-pages';
-import {SocialPage} from '@/pages/social';import {SearchPage} from '@/pages/search';import {NotificationsPage} from '@/pages/notifications';
-import {ProfilePage} from '@/pages/profile';import {EventsPage} from '@/pages/events';import {AdminPage} from '@/pages/admin';import {PremiumPage} from '@/pages/premium';import {supabase} from '@/lib/supabase';import {Toaster} from 'sonner';function Protected({children}:{children:React.ReactNode}){const [ready,setReady]=useState(false);const [ok,setOk]=useState(false);const loc=useLocation();useEffect(()=>{if(!supabase){setReady(true);return}supabase.auth.getSession().then(({data})=>{setOk(Boolean(data.session));setReady(true)});const {data:{subscription}}=supabase.auth.onAuthStateChange((_e,s)=>{setOk(Boolean(s));setReady(true)});return()=>subscription.unsubscribe()},[]);if(!ready)return <div className="flex min-h-screen items-center justify-center text-sm text-neutral-400">Загрузка KYRO…</div>;if(!ok)return <Navigate to="/login" replace state={{from:loc}}/>;return <>{children}</>}export default function App(){return <><Routes><Route path="/login" element={<AuthPage/>}/><Route path="/privacy" element={<PrivacyPage/>}/><Route element={<Protected><AppShell/></Protected>}><Route index element={<DashboardPage/>}/><Route path="/social" element={<SocialPage/>}/><Route path="/market" element={<PlaceholderPage title="Market" description="Каталог товаров и объявления сообщества."/>}/><Route path="/events" element={<EventsPage/>}/><Route path="/messages" element={<PlaceholderPage title="Сообщения" description="Личные диалоги и переписки."/>}/><Route path="/notifications" element={<NotificationsPage/>}/><Route path="/search" element={<SearchPage/>}/><Route path="/profile" element={<ProfilePage/>}/><Route path="/u/:username" element={<ProfilePage/>}/><Route path="/settings" element={<SettingsPage/>}/><Route path="/premium" element={<PremiumPage/>}/><Route path="/admin" element={<AdminPage/>}/><Route path="*" element={<Navigate to="/" replace/>}/></Route></Routes><Toaster position="top-right"/></>}
+import type React from 'react';
+import {createElement} from 'react';
+import {lazy,Suspense,useEffect,useState} from 'react';
+import {Navigate,Route,Routes,useLocation} from 'react-router-dom';
+import {AppShell} from '@/components/layout/app-shell';
+import {supabase} from '@/lib/supabase';
+import {Toaster} from 'sonner';
+
+const DashboardPage=lazy(()=>import('@/pages/dashboard').then(m=>({default:m.DashboardPage})));
+const AuthPage=lazy(()=>import('@/pages/auth').then(m=>({default:m.AuthPage})));
+const PrivacyPage=lazy(()=>import('@/pages/privacy').then(m=>({default:m.PrivacyPage})));
+const SocialPage=lazy(()=>import('@/pages/social').then(m=>({default:m.SocialPage})));
+const SearchPage=lazy(()=>import('@/pages/search').then(m=>({default:m.SearchPage})));
+const NotificationsPage=lazy(()=>import('@/pages/notifications').then(m=>({default:m.NotificationsPage})));
+const ProfilePage=lazy(()=>import('@/pages/profile').then(m=>({default:m.ProfilePage})));
+const EventsPage=lazy(()=>import('@/pages/events').then(m=>({default:m.EventsPage})));
+const AdminPage=lazy(()=>import('@/pages/admin').then(m=>({default:m.AdminPage})));
+const PremiumPage=lazy(()=>import('@/pages/premium').then(m=>({default:m.PremiumPage})));
+const SettingsPage=lazy(()=>import('@/pages/simple-pages').then(m=>({default:m.SettingsPage})));
+const MarketPage=lazy(()=>import('@/pages/simple-pages').then(m=>({default:()=>createElement(m.PlaceholderPage,{title:'Market',description:'Каталог товаров и объявления сообщества.'})})));
+const MessagesPage=lazy(()=>import('@/pages/simple-pages').then(m=>({default:()=>createElement(m.PlaceholderPage,{title:'Сообщения',description:'Личные диалоги и переписки.'})})));
+
+function PageLoader(){return <div className="flex min-h-[45vh] items-center justify-center text-sm text-neutral-400" role="status">Загрузка KYRO…</div>}
+function Protected({children}:{children:React.ReactNode}){
+ const [ready,setReady]=useState(false);const [ok,setOk]=useState(false);const loc=useLocation();
+ useEffect(()=>{if(!supabase){setReady(true);return}supabase.auth.getSession().then(({data})=>{setOk(Boolean(data.session));setReady(true)});const {data:{subscription}}=supabase.auth.onAuthStateChange((_e,s)=>{setOk(Boolean(s));setReady(true)});return()=>subscription.unsubscribe()},[]);
+ if(!ready)return <PageLoader/>;if(!ok)return <Navigate to="/login" replace state={{from:loc}}/>;return <>{children}</>;
+}
+export default function App(){
+ return <><Routes>
+  <Route path="/login" element={<Suspense fallback={<PageLoader/>}><AuthPage/></Suspense>}/><Route path="/privacy" element={<Suspense fallback={<PageLoader/>}><PrivacyPage/></Suspense>}/>
+  <Route element={<Protected><AppShell/></Protected>}>
+   <Route index element={<Suspense fallback={<PageLoader/>}><DashboardPage/></Suspense>}/><Route path="/social" element={<Suspense fallback={<PageLoader/>}><SocialPage/></Suspense>}/>
+   <Route path="/market" element={<Suspense fallback={<PageLoader/>}><MarketPage/></Suspense>}/><Route path="/events" element={<Suspense fallback={<PageLoader/>}><EventsPage/></Suspense>}/>
+   <Route path="/messages" element={<Suspense fallback={<PageLoader/>}><MessagesPage/></Suspense>}/><Route path="/notifications" element={<Suspense fallback={<PageLoader/>}><NotificationsPage/></Suspense>}/>
+   <Route path="/search" element={<Suspense fallback={<PageLoader/>}><SearchPage/></Suspense>}/><Route path="/profile" element={<Suspense fallback={<PageLoader/>}><ProfilePage/></Suspense>}/>
+   <Route path="/u/:username" element={<Suspense fallback={<PageLoader/>}><ProfilePage/></Suspense>}/><Route path="/settings" element={<Suspense fallback={<PageLoader/>}><SettingsPage/></Suspense>}/>
+   <Route path="/premium" element={<Suspense fallback={<PageLoader/>}><PremiumPage/></Suspense>}/><Route path="/admin" element={<Suspense fallback={<PageLoader/>}><AdminPage/></Suspense>}/>
+   <Route path="*" element={<Navigate to="/" replace/>}/>
+  </Route>
+ </Routes><Toaster position="top-right"/></>;
+}
