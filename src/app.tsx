@@ -1,4 +1,5 @@
 import type React from 'react';
+import {createElement} from 'react';
 import {lazy,Suspense,useEffect,useState} from 'react';
 import {Navigate,Route,Routes,useLocation} from 'react-router-dom';
 import {AppShell} from '@/components/layout/app-shell';
@@ -8,7 +9,6 @@ import {Toaster} from 'sonner';
 const DashboardPage=lazy(()=>import('@/pages/dashboard').then(m=>({default:m.DashboardPage})));
 const AuthPage=lazy(()=>import('@/pages/auth').then(m=>({default:m.AuthPage})));
 const PrivacyPage=lazy(()=>import('@/pages/privacy').then(m=>({default:m.PrivacyPage})));
-const SimplePages=lazy(()=>import('@/pages/simple-pages').then(m=>({default:()=>null})));
 const SocialPage=lazy(()=>import('@/pages/social').then(m=>({default:m.SocialPage})));
 const SearchPage=lazy(()=>import('@/pages/search').then(m=>({default:m.SearchPage})));
 const NotificationsPage=lazy(()=>import('@/pages/notifications').then(m=>({default:m.NotificationsPage})));
@@ -17,8 +17,8 @@ const EventsPage=lazy(()=>import('@/pages/events').then(m=>({default:m.EventsPag
 const AdminPage=lazy(()=>import('@/pages/admin').then(m=>({default:m.AdminPage})));
 const PremiumPage=lazy(()=>import('@/pages/premium').then(m=>({default:m.PremiumPage})));
 const SettingsPage=lazy(()=>import('@/pages/simple-pages').then(m=>({default:m.SettingsPage})));
-const MarketPage=lazy(()=>import('@/pages/simple-pages').then(m=>({default:()=>m.PlaceholderPage({title:'Market',description:'Каталог товаров и объявления сообщества.'})})));
-const MessagesPage=lazy(()=>import('@/pages/simple-pages').then(m=>({default:()=>m.PlaceholderPage({title:'Сообщения',description:'Личные диалоги и переписки.'})})));
+const MarketPage=lazy(()=>import('@/pages/simple-pages').then(m=>({default:()=>createElement(m.PlaceholderPage,{title:'Market',description:'Каталог товаров и объявления сообщества.'})})));
+const MessagesPage=lazy(()=>import('@/pages/simple-pages').then(m=>({default:()=>createElement(m.PlaceholderPage,{title:'Сообщения',description:'Личные диалоги и переписки.'})})));
 
 function PageLoader(){return <div className="flex min-h-[45vh] items-center justify-center text-sm text-neutral-400" role="status">Загрузка KYRO…</div>}
 function Protected({children}:{children:React.ReactNode}){
