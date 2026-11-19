@@ -15,3 +15,14 @@
 .dark .border-t,.dark .border-b,.dark .border-r,.dark .border{border-color:#333!important}
 
 @media (max-width: 767px){input,textarea,select,[contenteditable="true"]{font-size:16px!important}}
+
+/* PWA viewport polish and lightweight scrolling */
+html,body,#root{min-height:100%;background:#fff}
+html{overscroll-behavior-y:contain;scrollbar-width:none;-webkit-text-size-adjust:100%}
+html::-webkit-scrollbar,body::-webkit-scrollbar,*::-webkit-scrollbar{width:0;height:0;display:none}
+*{scrollbar-width:none}
+body{overscroll-behavior-y:contain}
+.kyro-app-header{background:#fff!important;padding-top:env(safe-area-inset-top);padding-left:max(1rem,env(safe-area-inset-left));padding-right:max(1rem,env(safe-area-inset-right))}
+.dark html,.dark body,.dark #root{background:#141414}
+.dark .kyro-app-header{background:#1b1b1b!important}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
