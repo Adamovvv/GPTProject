@@ -51,8 +51,8 @@ begin
  from public.social_posts p
  where p.user_id=new.user_id
    and p.created_at>now()-interval '24 hours'
-   and regexp_replace(lower(trim(p.content)), '\\s+', ' ', 'g')
-       =regexp_replace(lower(trim(new.content)), '\\s+', ' ', 'g');
+   and regexp_replace(lower(trim(p.content)), '\s+', ' ', 'g')
+       =regexp_replace(lower(trim(new.content)), '\s+', ' ', 'g');
  if duplicate_count>0 then
    raise exception 'Похожая публикация уже была размещена за последние 24 часа.';
  end if;
