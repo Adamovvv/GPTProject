@@ -1,8 +1,43 @@
-const CACHE='kyro-shell-v6';
+const CACHE='kyro-shell-v7';
+const ASSET_CACHE='kyro-assets-v1';
 const SHELL=['/','/manifest.webmanifest','/kyro-icon.svg'];
-self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)));self.skipWaiting();});
-self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});
-self.addEventListener('fetch',event=>{const request=event.request;if(request.method!=='GET'||new URL(request.url).origin!==self.location.origin)return;if(request.mode==='navigate'){event.respondWith(fetch(request).then(response=>{const copy=response.clone();caches.open(CACHE).then(cache=>cache.put('/',copy));return response;}).catch(()=>caches.match('/')));return;}event.respondWith(caches.match(request).then(cached=>cached||fetch(request).then(response=>{if(response.ok){const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(request,copy));}return response;})));});
+
+self.addEventListener('install',event=>{
+ event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)));
+ self.skipWaiting();
+});
+self.addEventListener('activate',event=>{
+ event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>![CACHE,ASSET_CACHE].includes(key)).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));
+});
+
+self.addEventListener('fetch',event=>{
+ const request=event.request;
+ if(request.method!=='GET')return;
+ const url=new URL(request.url);
+ if(url.origin!==self.location.origin)return;
+
+ if(request.mode==='navigate'){
+  event.respondWith(fetch(request).then(response=>{
+   if(response.ok){const copy=response.clone();void caches.open(CACHE).then(cache=>cache.put('/',copy));}
+   return response;
+  }).catch(()=>caches.match('/')));
+  return;
+ }
+
+ const isStatic=request.destination==='script'||request.destination==='style'||request.destination==='image'||request.destination==='font'||/\\.(?:js|css|svg|png|jpe?g|webp|woff2?)$/i.test(url.pathname);
+ if(!isStatic)return;
+
+ event.respondWith(caches.open(ASSET_CACHE).then(async cache=>{
+  const cached=await cache.match(request);
+  const update=fetch(request).then(response=>{
+   if(response.ok&&response.type==='basic')void cache.put(request,response.clone());
+   return response;
+  });
+  if(cached){event.waitUntil(update.catch(()=>{}));return cached;}
+  return update;
+ }));
+});
+
 self.addEventListener('push',event=>{
  let payload={title:'KYRO',body:'У вас новое уведомление',url:'/notifications'};
  try{if(event.data)payload={...payload,...event.data.json()};}catch{if(event.data)payload.body=event.data.text();}
