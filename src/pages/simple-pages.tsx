@@ -5,7 +5,7 @@ import {Card,CardContent} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {APP_VERSION} from '@/config/app';
-import {supabase} from '@/lib/supabase';
+import {supabase,emailVerificationClient} from '@/lib/supabase';
 import {toast} from 'sonner';
 
 function decodeVapidKey(value:string){
@@ -28,6 +28,9 @@ export function SettingsPage(){
  const [contactEmail,setContactEmail]=useState('');
  const [emailVerified,setEmailVerified]=useState(false);
  const [emailSending,setEmailSending]=useState(false);
+ const [emailCode,setEmailCode]=useState('');
+ const [codeSent,setCodeSent]=useState(false);
+ const [emailVerifying,setEmailVerifying]=useState(false);
  useEffect(()=>{
   let active=true;
   void (async()=>{
@@ -40,7 +43,7 @@ export function SettingsPage(){
     supabase.from('kyro_verification_requests').select('status,note').eq('user_id',user.id).order('created_at',{ascending:false}).limit(1).maybeSingle()
    ]);
    if(active){setVerified(Boolean(profile?.is_verified));setEmailVerified(Boolean(profile?.email_verified_at));setVerificationStatus(request?.status||null);setVerificationNote(request?.note||'');setLoading(false);}
-   const {data:emailInfo}=await supabase.functions.invoke('kyro-email-verification',{body:{action:'get'}});if(active)setContactEmail(emailInfo?.email||'');
+   const {data:emailInfo}=await supabase.functions.invoke('kyro-email-verification',{body:{action:'get'}});if(active)setContactEmail(emailInfo?.email||'');setCodeSent(false);
    if('serviceWorker' in navigator&&'PushManager' in window){
     const registration=await navigator.serviceWorker.ready;
     const subscription=await registration.pushManager.getSubscription();
@@ -50,7 +53,15 @@ export function SettingsPage(){
   return()=>{active=false};
  },[]);
  const requestEmailVerification=async()=>{
-  if(!supabase||!contactEmail.trim())return;setEmailSending(true);const {data,error}=await supabase.functions.invoke('kyro-email-verification',{body:{action:'send',email:contactEmail.trim()}});setEmailSending(false);if(error||data?.error){toast.error(data?.error||'Не удалось отправить письмо');return;}setEmailVerified(false);toast.success('Письмо отправлено. Перейдите по ссылке из письма для подтверждения.');
+  if(!supabase||!contactEmail.trim())return;setEmailSending(true);const {data,error}=await supabase.functions.invoke('kyro-email-verification',{body:{action:'send',email:contactEmail.trim()}});setEmailSending(false);if(error||data?.error){toast.error(data?.error||'Не удалось отправить код');return;}setEmailVerified(false);setCodeSent(true);setEmailCode('');toast.success('Шестизначный код отправлен на email.');
+ };
+ const confirmEmailCode=async()=>{
+  if(!emailVerificationClient||!contactEmail.trim()||emailCode.length!==6)return;setEmailVerifying(true);
+  const {data,error}=await emailVerificationClient.auth.verifyOtp({email:contactEmail.trim().toLowerCase(),token:emailCode,type:'email'});
+  if(error||!data.user){setEmailVerifying(false);toast.error(error?.message||'Неверный или просроченный код');return;}
+  const {data:result,error:verifyError}=await emailVerificationClient.functions.invoke('kyro-email-verification',{body:{action:'verify'}});
+  setEmailVerifying(false);if(verifyError||result?.error){toast.error(result?.error||verifyError?.message||'Не удалось подтвердить email');return;}
+  setEmailVerified(true);setCodeSent(false);setEmailCode('');toast.success('Email подтверждён. Все возможности аккаунта разблокированы.');
  };
  const requestVerification=async()=>{
   if(!supabase||!userId)return;
@@ -100,7 +111,9 @@ export function SettingsPage(){
   <div><h1 className="text-3xl font-semibold">Настройки</h1><p className="mt-2 text-sm text-neutral-500">Управление аккаунтом и уведомлениями.</p></div>
   <Card><CardContent className="space-y-4 p-5">
    <div className="flex items-center gap-3"><ShieldCheck size={19}/><div><h2 className="font-semibold">Подтверждение email</h2><p className="text-xs text-neutral-500">Подтверждение необходимо для публикаций, подписок, сообществ и маркета.</p></div><div className="ml-auto text-xs text-neutral-500">{emailVerified?'Подтверждён':'Не подтверждён'}</div></div>
-   <div className="flex flex-col gap-2 sm:flex-row"><Input type="email" value={contactEmail} onChange={e=>setContactEmail(e.target.value)} placeholder="you@example.com"/><Button onClick={()=>void requestEmailVerification()} disabled={emailSending||!contactEmail.trim()}>{emailSending?<Loader2 className="animate-spin" size={15}/>:null}{emailVerified?'Изменить email и подтвердить':'Отправить письмо'}</Button></div><p className="text-xs text-neutral-400">Если адрес указан неверно, измените его и отправьте новое письмо. Предыдущее подтверждение будет сброшено.</p>
+   <div className="flex flex-col gap-2 sm:flex-row"><Input type="email" value={contactEmail} onChange={e=>{setContactEmail(e.target.value);setCodeSent(false);setEmailCode('');}} placeholder="you@example.com"/><Button onClick={()=>void requestEmailVerification()} disabled={emailSending||!contactEmail.trim()}>{emailSending?<Loader2 className="animate-spin" size={15}/>:null}{emailVerified?'Изменить email':'Отправить код'}</Button></div>
+   {codeSent&&!emailVerified&&<div className="flex flex-col gap-2 sm:flex-row"><Input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={emailCode} onChange={e=>setEmailCode(e.target.value.replace(/\\D/g,'').slice(0,6))} placeholder="Введите 6-значный код"/><Button variant="outline" onClick={()=>void confirmEmailCode()} disabled={emailVerifying||emailCode.length!==6}>{emailVerifying?<Loader2 className="animate-spin" size={15}/>:null}Подтвердить код</Button></div>}
+   <p className="text-xs text-neutral-400">Код придёт на указанный адрес. Если email указан неверно, исправьте его и запросите новый код.</p>
   </CardContent></Card>
   <Card><CardContent className="space-y-4 p-5">
    <div className="flex items-center gap-3"><ShieldCheck size={19}/><div><h2 className="font-semibold">Подтверждение аккаунта</h2><p className="text-xs text-neutral-500">После проверки появится значок подтверждённого профиля.</p></div><div className="ml-auto">{verified?<Check className="text-neutral-700" size={21}/>:null}</div></div>
