@@ -31,7 +31,7 @@ Deno.serve(async(req)=>{
    }
    if(typeof email!=='string'||!validEmail(email.trim()))return json({error:'Укажите корректный email'},400);
    const normalized=email.trim().toLowerCase();
-   const {data:existing}=await admin.from('kyro_user_emails').select('user_id').ilike('email',normalized).maybeSingle();
+   const {data:existing}=await admin.from('kyro_user_emails').select('user_id').eq('email',normalized).maybeSingle();
    if(existing&&existing.user_id!==user.id)return json({error:'Этот email уже привязан к другому аккаунту KYRO'},409);
    const {data:current}=await admin.from('kyro_user_emails').select('last_sent_at,daily_window_started_at,daily_send_count').eq('user_id',user.id).maybeSingle();
    const now=Date.now();
@@ -61,7 +61,7 @@ Deno.serve(async(req)=>{
    const {data:{user},error:userError}=await auth.auth.getUser(bearer);
    if(userError||!user?.email)return json({error:'Ссылка подтверждения недействительна или устарела'},401);
    if(!user.email_confirmed_at)return json({error:'Сначала подтвердите email по ссылке из письма'},403);
-   const {data:link,error:linkError}=await admin.from('kyro_user_emails').select('user_id').ilike('email',user.email).maybeSingle();
+   const {data:link,error:linkError}=await admin.from('kyro_user_emails').select('user_id').eq('email',user.email.toLowerCase()).maybeSingle();
    if(linkError)throw linkError;
    if(!link)return json({error:'Для этого адреса не найден ожидающий запрос подтверждения KYRO'},404);
    const {error:updateError}=await admin.from('profiles').update({email_verified_at:new Date().toISOString(),email_verification_required:true}).eq('id',link.user_id);
