@@ -59,8 +59,8 @@ Deno.serve(async(req)=>{
   if(action==='verify'){
    if(!bearer)return json({error:'Не найден токен подтверждения'},401);
    const {data:{user},error:userError}=await auth.auth.getUser(bearer);
-   if(userError||!user?.email)return json({error:'Ссылка подтверждения недействительна или устарела'},401);
-   if(!user.email_confirmed_at)return json({error:'Сначала подтвердите email по ссылке из письма'},403);
+   if(userError||!user?.email)return json({error:'Код подтверждения недействителен или устарел'},401);
+   if(!user.email_confirmed_at)return json({error:'Сначала введите код из письма в настройках KYRO'},403);
    const {data:link,error:linkError}=await admin.from('kyro_user_emails').select('user_id').eq('email',user.email.toLowerCase()).maybeSingle();
    if(linkError)throw linkError;
    if(!link)return json({error:'Для этого адреса не найден ожидающий запрос подтверждения KYRO'},404);
