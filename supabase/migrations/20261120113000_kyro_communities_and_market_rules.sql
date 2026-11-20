@@ -18,6 +18,9 @@ create table if not exists public.kyro_community_posts (
  created_at timestamptz not null default now(), moderation_status text not null default 'visible'
 );
 create index if not exists kyro_communities_created_idx on public.kyro_communities(created_at desc);
+create index if not exists kyro_communities_owner_idx on public.kyro_communities(owner_id);
+create index if not exists kyro_community_members_user_idx on public.kyro_community_members(user_id);
+create index if not exists kyro_community_posts_user_idx on public.kyro_community_posts(user_id);
 create index if not exists kyro_community_posts_feed_idx on public.kyro_community_posts(community_id,created_at desc);
 alter table public.kyro_communities enable row level security;
 alter table public.kyro_community_members enable row level security;
