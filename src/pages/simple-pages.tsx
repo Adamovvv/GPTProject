@@ -40,7 +40,7 @@ export function SettingsPage(){
     supabase.from('kyro_verification_requests').select('status,note').eq('user_id',user.id).order('created_at',{ascending:false}).limit(1).maybeSingle()
    ]);
    if(active){setVerified(Boolean(profile?.is_verified));setEmailVerified(Boolean(profile?.email_verified_at));setVerificationStatus(request?.status||null);setVerificationNote(request?.note||'');setLoading(false);}
-   const {data:emailInfo}=await supabase.functions.invoke('kyro-email-verification',{body:{action:'get'}});if(active)setContactEmail(emailInfo?.email||'');setCodeSent(Boolean(emailInfo?.email&&!emailInfo?.verified));
+   const {data:emailInfo}=await supabase.functions.invoke('kyro-email-verification',{body:{action:'get'}});if(active)setContactEmail(emailInfo?.email||'');setCodeSent(false);
    if('serviceWorker' in navigator&&'PushManager' in window){
     const registration=await navigator.serviceWorker.ready;
     const subscription=await registration.pushManager.getSubscription();
