@@ -11,7 +11,7 @@ type Profile=PostAuthor&{id:string;bio?:string};
 type FeedTab='for-you'|'following';
 const normalize=(value:string)=>value.toLocaleLowerCase('ru').replace(/https?:\/\/\S+/g,'').replace(/[^\p{L}\p{N}]+/gu,' ').trim().replace(/\s+/g,' ');
 export function SocialPage(){
- const [userId,setUserId]=useState('');const [posts,setPosts]=useState<SharedPost[]>([]);const [people,setPeople]=useState<Profile[]>([]);const [following,setFollowing]=useState<string[]>([]);const [tab,setTab]=useState<FeedTab>('for-you');const [content,setContent]=useState('');const [loading,setLoading]=useState(true);const [publishing,setPublishing]=useState(false);const [myInterests,setMyInterests]=useState<string[]>([]);const [peopleInterests,setPeopleInterests]=useState<Record<string,string[]>>({});const [likedAuthors,setLikedAuthors]=useState<string[]>([]);const [viewedAuthors,setViewedAuthors]=useState<string[]>([]);const [seenPostIds,setSeenPostIds]=useState<string[]>([]);const [hideSeenPosts,setHideSeenPosts]=useState(false);const [emailRequired,setEmailRequired]=useState(false);const [emailVerified,setEmailVerified]=useState(false);
+ const [userId,setUserId]=useState('');const [posts,setPosts]=useState<SharedPost[]>([]);const [people,setPeople]=useState<Profile[]>([]);const [following,setFollowing]=useState<string[]>([]);const [tab,setTab]=useState<FeedTab>('for-you');const [content,setContent]=useState('');const [loading,setLoading]=useState(true);const [publishing,setPublishing]=useState(false);const [myInterests,setMyInterests]=useState<string[]>([]);const [peopleInterests,setPeopleInterests]=useState<Record<string,string[]>>({});const [likedAuthors,setLikedAuthors]=useState<string[]>([]);const [viewedAuthors,setViewedAuthors]=useState<string[]>([]);const [seenPostIds,setSeenPostIds]=useState<string[]>([]);const [hideSeenPosts,setHideSeenPosts]=useState(false);const [emailVerified,setEmailVerified]=useState(false);
  const load=useCallback(async()=>{if(!supabase)return;setLoading(true);const {data:{user}}=await supabase.auth.getUser();if(!user){setLoading(false);return;}setUserId(user.id);
  const [{data:follows,error:followError},{data:profiles},{data:raw,error:postError},{data:ownTags},{data:likesByMe},{data:viewsByMe},{data:preference},{data:ownProfile}]=await Promise.all([
  supabase.from('social_follows').select('following_id').eq('follower_id',user.id),
@@ -21,11 +21,11 @@ export function SocialPage(){
   supabase.from('social_likes').select('post_id').eq('user_id',user.id),
  supabase.from('social_post_views').select('post_id').eq('viewer_id',user.id).limit(500),
  supabase.from('kyro_feed_preferences').select('hide_seen_posts').eq('user_id',user.id).maybeSingle(),
- supabase.from('profiles').select('email_verification_required,email_verified_at').eq('id',user.id).maybeSingle()
+ supabase.from('profiles').select('email_verified_at').eq('id',user.id).maybeSingle()
  ]);
  if(followError||postError){toast.error(postError?.message||followError?.message||'Не удалось загрузить ленту');setLoading(false);return;}
  const followIds=(follows||[]).map(x=>x.following_id);setFollowing(followIds);setPeople((profiles||[]) as Profile[]);setMyInterests((ownTags||[]).map(x=>x.interest));
- if(preference)setHideSeenPosts(preference.hide_seen_posts);setEmailRequired(Boolean(ownProfile?.email_verification_required));setEmailVerified(Boolean(ownProfile?.email_verified_at));const rows=(raw||[]) as unknown as Array<{id:string;user_id:string;content:string;created_at:string;author:Profile}>;const postIds=rows.map(p=>p.id);
+ if(preference)setHideSeenPosts(preference.hide_seen_posts);setEmailVerified(Boolean(ownProfile?.email_verified_at));const rows=(raw||[]) as unknown as Array<{id:string;user_id:string;content:string;created_at:string;author:Profile}>;const postIds=rows.map(p=>p.id);
  const authorIds=[...new Set([...rows.map(p=>p.user_id),...(profiles||[]).map(p=>p.id)])];
  const {data:allTags}=authorIds.length?await supabase.from('kyro_interests').select('user_id,interest').in('user_id',authorIds):{data:[]};
  const grouped:Record<string,string[]>={};(allTags||[]).forEach(x=>{(grouped[x.user_id]??=[]).push(x.interest)});setPeopleInterests(grouped);
