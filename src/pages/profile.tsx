@@ -50,7 +50,7 @@ export function ProfilePage(){
         <div key={person.id} className="flex items-center gap-3 rounded-lg p-2 hover:bg-neutral-50">
          <Link to={person.username?'/u/'+person.username:'/profile'} onClick={()=>setDialog(null)} className="flex min-w-0 flex-1 items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100 text-sm font-semibold text-neutral-600">{person.avatar_url?<img src={person.avatar_url} alt="" className="h-full w-full object-cover"/>:initials(person)}</div>
-          <div className="min-w-0"><p className="truncate text-sm font-medium">{person.full_name||person.username||'Пользователь KYRO'}{person.is_verified&&<VerifiedBadge size={14}/>}</p><p className="truncate text-xs text-neutral-400">{person.username?'@'+person.username:'Участник KYRO'}</p></div>
+          <div className="min-w-0"><p className="truncate text-sm font-medium">{person.full_name||person.username||'Пользователь KYRO'}{person.is_verified&&<span className="ml-1.5 inline-flex"><VerifiedBadge size={14}/></span>}</p><p className="truncate text-xs text-neutral-400">{person.username?'@'+person.username:'Участник KYRO'}</p></div>
          </Link>
          {dialog==='following'&&profile.id===me&&<Button type="button" size="sm" variant="outline" onClick={()=>void unfollowFromDialog(person)}>Отписаться</Button>}
         </div>
