@@ -27,7 +27,6 @@ export function SettingsPage(){
  const [pushEnabled,setPushEnabled]=useState(false);
  const [contactEmail,setContactEmail]=useState('');
  const [emailVerified,setEmailVerified]=useState(false);
- const [emailRequired,setEmailRequired]=useState(false);
  const [emailSending,setEmailSending]=useState(false);
  useEffect(()=>{
   let active=true;
@@ -40,7 +39,7 @@ export function SettingsPage(){
     supabase.from('profiles').select('is_verified,email_verification_required,email_verified_at').eq('id',user.id).maybeSingle(),
     supabase.from('kyro_verification_requests').select('status,note').eq('user_id',user.id).order('created_at',{ascending:false}).limit(1).maybeSingle()
    ]);
-   if(active){setVerified(Boolean(profile?.is_verified));setEmailVerified(Boolean(profile?.email_verified_at));setEmailRequired(Boolean(profile?.email_verification_required));setVerificationStatus(request?.status||null);setVerificationNote(request?.note||'');setLoading(false);}
+   if(active){setVerified(Boolean(profile?.is_verified));setEmailVerified(Boolean(profile?.email_verified_at));setVerificationStatus(request?.status||null);setVerificationNote(request?.note||'');setLoading(false);}
    const {data:emailInfo}=await supabase.functions.invoke('kyro-email-verification',{body:{action:'get'}});if(active)setContactEmail(emailInfo?.email||'');
    if('serviceWorker' in navigator&&'PushManager' in window){
     const registration=await navigator.serviceWorker.ready;
@@ -51,7 +50,7 @@ export function SettingsPage(){
   return()=>{active=false};
  },[]);
  const requestEmailVerification=async()=>{
-  if(!supabase||!contactEmail.trim())return;setEmailSending(true);const {data,error}=await supabase.functions.invoke('kyro-email-verification',{body:{action:'send',email:contactEmail.trim()}});setEmailSending(false);if(error||data?.error){toast.error(data?.error||'Не удалось отправить письмо');return;}setEmailRequired(true);setEmailVerified(false);toast.success('Письмо отправлено. Перейдите по ссылке из письма для подтверждения.');
+  if(!supabase||!contactEmail.trim())return;setEmailSending(true);const {data,error}=await supabase.functions.invoke('kyro-email-verification',{body:{action:'send',email:contactEmail.trim()}});setEmailSending(false);if(error||data?.error){toast.error(data?.error||'Не удалось отправить письмо');return;}setEmailVerified(false);toast.success('Письмо отправлено. Перейдите по ссылке из письма для подтверждения.');
  };
  const requestVerification=async()=>{
   if(!supabase||!userId)return;
@@ -100,7 +99,7 @@ export function SettingsPage(){
  return <div className="mx-auto max-w-3xl space-y-5">
   <div><h1 className="text-3xl font-semibold">Настройки</h1><p className="mt-2 text-sm text-neutral-500">Управление аккаунтом и уведомлениями.</p></div>
   <Card><CardContent className="space-y-4 p-5">
-   <div className="flex items-center gap-3"><ShieldCheck size={19}/><div><h2 className="font-semibold">Подтверждение email</h2><p className="text-xs text-neutral-500">Подтверждение необходимо для публикаций, подписок, сообществ и маркета.</p></div><div className="ml-auto text-xs text-neutral-500">{emailVerified?'Подтверждён':emailRequired?'Ожидает подтверждения':'Не требуется'}</div></div>
+   <div className="flex items-center gap-3"><ShieldCheck size={19}/><div><h2 className="font-semibold">Подтверждение email</h2><p className="text-xs text-neutral-500">Подтверждение необходимо для публикаций, подписок, сообществ и маркета.</p></div><div className="ml-auto text-xs text-neutral-500">{emailVerified?'Подтверждён':'Не подтверждён'}</div></div>
    <div className="flex flex-col gap-2 sm:flex-row"><Input type="email" value={contactEmail} onChange={e=>setContactEmail(e.target.value)} placeholder="you@example.com"/><Button onClick={()=>void requestEmailVerification()} disabled={emailSending||!contactEmail.trim()}>{emailSending?<Loader2 className="animate-spin" size={15}/>:null}{emailVerified?'Изменить email и подтвердить':'Отправить письмо'}</Button></div><p className="text-xs text-neutral-400">Если адрес указан неверно, измените его и отправьте новое письмо. Предыдущее подтверждение будет сброшено.</p>
   </CardContent></Card>
   <Card><CardContent className="space-y-4 p-5">
