@@ -14,10 +14,12 @@ const SocialPage=lazy(()=>import('@/pages/social').then(m=>({default:m.SocialPag
 const SearchPage=lazy(()=>import('@/pages/search').then(m=>({default:m.SearchPage})));
 const NotificationsPage=lazy(()=>import('@/pages/notifications').then(m=>({default:m.NotificationsPage})));
 const ProfilePage=lazy(()=>import('@/pages/profile').then(m=>({default:m.ProfilePage})));
-const EventsPage=lazy(()=>import('@/pages/events').then(m=>({default:m.EventsPage})));\nconst CommunitiesPage=lazy(()=>import('@/pages/communities').then(m=>({default:m.CommunitiesPage})));\nconst MarketPage=lazy(()=>import('@/pages/market').then(m=>({default:m.MarketPage})));
+const EventsPage=lazy(()=>import('@/pages/events').then(m=>({default:m.EventsPage})));
+const CommunitiesPage=lazy(()=>import('@/pages/communities').then(m=>({default:m.CommunitiesPage})));
+const MarketPage=lazy(()=>import('@/pages/market').then(m=>({default:m.MarketPage})));
 const AdminPage=lazy(()=>import('@/pages/admin').then(m=>({default:m.AdminPage})));
 const SettingsPage=lazy(()=>import('@/pages/simple-pages').then(m=>({default:m.SettingsPage})));
-const MarketPage=lazy(()=>import('@/pages/simple-pages').then(m=>({default:()=>createElement(m.PlaceholderPage,{title:'Market',description:'Каталог товаров и объявления сообщества.'})})));
+
 const MessagesPage=lazy(()=>import('@/pages/simple-pages').then(m=>({default:()=>createElement(m.PlaceholderPage,{title:'Сообщения',description:'Личные диалоги и переписки.'})})));
 
 function PageLoader(){return <div className="flex min-h-[45vh] items-center justify-center text-sm text-neutral-400" role="status">Загрузка KYRO…</div>}
