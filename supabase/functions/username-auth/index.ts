@@ -36,6 +36,11 @@ Deno.serve(async(req)=>{
    const {data:existing,error:lookupError}=await admin.from('profiles').select('id').ilike('username',normalized).maybeSingle();
    if(lookupError)throw lookupError;
    if(existing)return json({error:'Этот username уже занят'},409);
+   if(typeof contactEmail==='string'&&contactEmail.trim()){
+    const {data:emailOwner,error:emailLookupError}=await admin.from('kyro_user_emails').select('user_id').ilike('email',contactEmail.trim()).maybeSingle();
+    if(emailLookupError)throw emailLookupError;
+    if(emailOwner)return json({error:'Этот email уже привязан к другому аккаунту KYRO'},409);
+   }
    const {data:created,error:createError}=await admin.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{username:normalized}});
    if(createError)return json({error:createError.message.includes('already been registered')?'Этот username уже занят':'Не удалось создать аккаунт'},409);
    const {error:profileError}=await admin.from('profiles').upsert({id:created.user.id,username:normalized,full_name:normalized,email_verification_required:true,email_verified_at:null},{onConflict:'id'});
