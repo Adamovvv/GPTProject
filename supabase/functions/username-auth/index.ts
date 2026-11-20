@@ -37,7 +37,7 @@ Deno.serve(async(req)=>{
    if(lookupError)throw lookupError;
    if(existing)return json({error:'Этот username уже занят'},409);
    if(typeof contactEmail==='string'&&contactEmail.trim()){
-    const {data:emailOwner,error:emailLookupError}=await admin.from('kyro_user_emails').select('user_id').ilike('email',contactEmail.trim()).maybeSingle();
+    const {data:emailOwner,error:emailLookupError}=await admin.from('kyro_user_emails').select('user_id').eq('email',contactEmail.trim().toLowerCase()).maybeSingle();
     if(emailLookupError)throw emailLookupError;
     if(emailOwner)return json({error:'Этот email уже привязан к другому аккаунту KYRO'},409);
    }
