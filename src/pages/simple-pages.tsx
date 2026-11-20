@@ -100,7 +100,7 @@ export function SettingsPage(){
  return <div className="mx-auto max-w-3xl space-y-5">
   <div><h1 className="text-3xl font-semibold">Настройки</h1><p className="mt-2 text-sm text-neutral-500">Управление аккаунтом и уведомлениями.</p></div>
   <Card><CardContent className="space-y-4 p-5">
-   <div className="flex items-center gap-3"><ShieldCheck size={19}/><div><h2 className="font-semibold">Подтверждение email</h2><p className="text-xs text-neutral-500">Подтверждение необходимо для публикаций, подписок, сообществ и маркета.</p></div><div className="ml-auto text-xs text-neutral-500">{emailVerified?'Подтверждён':emailRequired?'Ожидает подтверждения':'Не требуется'}</div></div>
+   <div className="flex items-center gap-3"><ShieldCheck size={19}/><div><h2 className="font-semibold">Подтверждение email</h2><p className="text-xs text-neutral-500">Подтверждение необходимо для публикаций, подписок, сообществ и маркета.</p></div><div className="ml-auto text-xs text-neutral-500">{emailVerified?'Подтверждён':'Не подтверждён'}</div></div>
    <div className="flex flex-col gap-2 sm:flex-row"><Input type="email" value={contactEmail} onChange={e=>setContactEmail(e.target.value)} placeholder="you@example.com"/><Button onClick={()=>void requestEmailVerification()} disabled={emailSending||!contactEmail.trim()}>{emailSending?<Loader2 className="animate-spin" size={15}/>:null}{emailVerified?'Изменить email и подтвердить':'Отправить письмо'}</Button></div><p className="text-xs text-neutral-400">Если адрес указан неверно, измените его и отправьте новое письмо. Предыдущее подтверждение будет сброшено.</p>
   </CardContent></Card>
   <Card><CardContent className="space-y-4 p-5">
