@@ -1,6 +1,6 @@
 import {NavLink,Outlet,useNavigate} from 'react-router-dom';
 import {useEffect,useState,type KeyboardEvent} from 'react';
-import {Bell,CalendarDays,Compass,Home,MessageCircle,Moon,Search,Settings,ShoppingBag,Sun,UserRound,Shield} from 'lucide-react';
+import {Bell,CalendarDays,Compass,Home,MessageCircle,Moon,Search,Settings,ShoppingBag,Sun,UserRound,Shield,Users} from 'lucide-react';
 import {Avatar,AvatarFallback} from '@/components/ui/avatar';
 import {Button} from '@/components/ui/button';
 import {Separator} from '@/components/ui/separator';
@@ -8,7 +8,7 @@ import {APP_VERSION} from '@/config/app';
 import {supabase} from '@/lib/supabase';
 import {AppInstallBanner} from '@/components/layout/app-install-banner';
 const links=[{to:'/',label:'Главная',icon:Home},{to:'/social',label:'Лента',icon:Compass},{to:'/profile',label:'Профиль',icon:UserRound}];
-const extra=[{to:'/market',label:'Маркет',icon:ShoppingBag},{to:'/events',label:'События',icon:CalendarDays},{to:'/messages',label:'Сообщения',icon:MessageCircle}];
+const extra=[{to:'/market',label:'Маркет',icon:ShoppingBag},{to:'/communities',label:'Сообщества',icon:Users},{to:'/events',label:'События',icon:CalendarDays},{to:'/messages',label:'Сообщения',icon:MessageCircle}];
 const mobileLinks=[links[0],links[1],{to:'/messages',label:'Сообщения',icon:MessageCircle},{to:'/settings',label:'Настройки',icon:Settings}];
 export function AppShell(){
  const [dark,setDark]=useState(()=>localStorage.getItem('kyro-theme')==='dark');const [isAdmin,setIsAdmin]=useState(false);const [isSuspended,setIsSuspended]=useState(false);const [search,setSearch]=useState('');const nav=useNavigate();
