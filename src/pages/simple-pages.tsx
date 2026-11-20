@@ -3,6 +3,7 @@ import {Link,useNavigate} from 'react-router-dom';
 import {Check,Bell,CheckCircle2,Loader2,LogOut,ShieldCheck,Smartphone} from 'lucide-react';
 import {Card,CardContent} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
 import {APP_VERSION} from '@/config/app';
 import {supabase} from '@/lib/supabase';
 import {toast} from 'sonner';
