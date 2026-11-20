@@ -8,7 +8,6 @@ import {Toaster} from 'sonner';
 
 const DashboardPage=lazy(()=>import('@/pages/dashboard').then(m=>({default:m.DashboardPage})));
 const AuthPage=lazy(()=>import('@/pages/auth').then(m=>({default:m.AuthPage})));
-const EmailConfirmPage=lazy(()=>import('@/pages/email-confirm').then(m=>({default:m.EmailConfirmPage})));
 const PrivacyPage=lazy(()=>import('@/pages/privacy').then(m=>({default:m.PrivacyPage})));
 const SocialPage=lazy(()=>import('@/pages/social').then(m=>({default:m.SocialPage})));
 const SearchPage=lazy(()=>import('@/pages/search').then(m=>({default:m.SearchPage})));
@@ -30,7 +29,7 @@ function Protected({children}:{children:React.ReactNode}){
 }
 export default function App(){
  return <><Routes>
-  <Route path="/login" element={<Suspense fallback={<PageLoader/>}><AuthPage/></Suspense>}/><Route path="/email/confirm" element={<Suspense fallback={<PageLoader/>}><EmailConfirmPage/></Suspense>}/><Route path="/privacy" element={<Suspense fallback={<PageLoader/>}><PrivacyPage/></Suspense>}/>
+  <Route path="/login" element={<Suspense fallback={<PageLoader/>}><AuthPage/></Suspense>}/><Route path="/privacy" element={<Suspense fallback={<PageLoader/>}><PrivacyPage/></Suspense>}/>
   <Route element={<Protected><AppShell/></Protected>}>
    <Route index element={<Suspense fallback={<PageLoader/>}><DashboardPage/></Suspense>}/><Route path="/social" element={<Suspense fallback={<PageLoader/>}><SocialPage/></Suspense>}/>
    <Route path="/market" element={<Suspense fallback={<PageLoader/>}><MarketPage/></Suspense>}/><Route path="/communities" element={<Suspense fallback={<PageLoader/>}><CommunitiesPage/></Suspense>}/><Route path="/communities/:slug" element={<Suspense fallback={<PageLoader/>}><CommunitiesPage/></Suspense>}/><Route path="/events" element={<Suspense fallback={<PageLoader/>}><EventsPage/></Suspense>}/>
