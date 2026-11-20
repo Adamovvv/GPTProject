@@ -13,11 +13,11 @@ const slugify=(value:string)=>{const map:Record<string,string>={а:'a',б:'b',в
 export function CommunitiesPage(){
  const {slug}=useParams();
  const [items,setItems]=useState<Community[]>([]);const [members,setMembers]=useState<string[]>([]);const [posts,setPosts]=useState<CommunityPost[]>([]);
- const [loading,setLoading]=useState(true);const [me,setMe]=useState('');const [emailAllowed,setEmailAllowed]=useState(true);
+ const [loading,setLoading]=useState(true);const [me,setMe]=useState('');const [emailAllowed,setEmailAllowed]=useState(false);
  const [showForm,setShowForm]=useState(false);const [saving,setSaving]=useState(false);const [form,setForm]=useState({name:'',slug:'',description:'',category:'Общее'});const [message,setMessage]=useState('');
  const load=useCallback(async()=>{
   if(!supabase){setLoading(false);return;}setLoading(true);
-  const {data:{user}}=await supabase.auth.getUser();if(user){setMe(user.id);const {data:p}=await supabase.from('profiles').select('email_verification_required,email_verified_at').eq('id',user.id).maybeSingle();setEmailAllowed(!(p?.email_verification_required&&!p?.email_verified_at));}
+  const {data:{user}}=await supabase.auth.getUser();if(user){setMe(user.id);const {data:p}=await supabase.from('profiles').select('email_verification_required,email_verified_at').eq('id',user.id).maybeSingle();setEmailAllowed(Boolean(p?.email_verified_at));}
   const {data,error}=await supabase.from('kyro_communities').select('id,name,slug,description,category,owner_id,created_at').order('created_at',{ascending:false}).limit(100);
   if(error)toast.error('Не удалось загрузить сообщества');const rows=(data||[]) as Community[];setItems(rows);
   if(user){const [{data:m}]=await Promise.all([supabase.from('kyro_community_members').select('community_id').eq('user_id',user.id)]);setMembers((m||[]).map(x=>x.community_id));}
