@@ -33,7 +33,7 @@ export function AuthPage(){
    const {error:sessionError}=await supabase.auth.setSession({access_token:data.access_token,refresh_token:data.refresh_token});
    if(sessionError)throw sessionError;
    if(mode==='register'&&v.email){
-    toast.success(data.email_verification_sent?'Аккаунт создан. Ссылка подтверждения отправлена на email.':'Аккаунт создан. Подтвердите email в профиле, когда письмо будет доступно.');
+    toast.success(data.email_verification_sent?'Аккаунт создан. Код подтверждения отправлен на email.':'Аккаунт создан. Откройте настройки, чтобы запросить код подтверждения email.');
    }else toast.success(mode==='register'?'Аккаунт создан':'С возвращением');
    nav('/');
   }catch(e){
@@ -49,7 +49,7 @@ export function AuthPage(){
   <Card><CardHeader><CardTitle>{mode==='login'?'Вход в KYRO':'Создать аккаунт'}</CardTitle><CardDescription>{mode==='login'?'Войдите по username и паролю.':'Email необязателен при регистрации, но без подтверждения почты нельзя публиковать и подписываться.'}</CardDescription></CardHeader>
    <CardContent><form onSubmit={handleSubmit(submit)} className="space-y-4">
     <div><label className="mb-1.5 block text-sm font-medium">Username</label><Input autoComplete="username" placeholder="your_username" {...register('username')}/>{errors.username&&<p className="mt-1 text-xs text-red-600">{errors.username.message}</p>}</div>
-    {mode==='register'&&<div><label className="mb-1.5 block text-sm font-medium">Email <span className="font-normal text-neutral-400">(необязательно)</span></label><Input type="email" autoComplete="email" placeholder="you@example.com" {...register('email')}/>{errors.email&&<p className="mt-1 text-xs text-red-600">{errors.email.message}</p>}<p className="mt-1 text-xs text-neutral-400">Можно добавить или изменить позже в профиле.</p></div>}
+    {mode==='register'&&<div><label className="mb-1.5 block text-sm font-medium">Email <span className="font-normal text-neutral-400">(необязательно)</span></label><Input type="email" autoComplete="email" placeholder="you@example.com" {...register('email')}/>{errors.email&&<p className="mt-1 text-xs text-red-600">{errors.email.message}</p>}<p className="mt-1 text-xs text-neutral-400">Можно добавить или изменить позже в настройках.</p></div>}
     <div><label className="mb-1.5 block text-sm font-medium">Пароль</label><Input type="password" autoComplete={mode==='login'?'current-password':'new-password'} placeholder="Не менее 8 символов" {...register('password')}/>{errors.password&&<p className="mt-1 text-xs text-red-600">{errors.password.message}</p>}</div>
     <Button className="w-full" disabled={busy||!isSupabaseConfigured}>{busy&&<Loader2 className="animate-spin" size={16}/>} {mode==='login'?'Войти':'Зарегистрироваться'}</Button>
    </form>
