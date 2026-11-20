@@ -6,8 +6,8 @@ Deno.serve(async(req)=>{
  if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
  if(req.method!=='POST')return json({error:'Method not allowed'},405);
  try{
-  const {action,username,password}=await req.json();
-  if(!['login','register'].includes(action)||typeof username!=='string'||typeof password!=='string')return json({error:'Некорректный запрос'},400);
+  const {action,username,password,email:contactEmail}=await req.json();
+  if(!['login','register'].includes(action)||typeof username!=='string'||typeof password!=='string'||(action==='register'&&contactEmail!==undefined&&contactEmail!==''&&(typeof contactEmail!=='string'||! /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim()))))return json({error:'Некорректный запрос'},400);
   const normalized=username.trim().toLowerCase();
   if(!/^[a-z0-9_]{3,24}$/.test(normalized)||password.length<8||password.length>128)return json({error:'Проверьте username и пароль (не менее 8 символов)'},400);
   const url=Deno.env.get('SUPABASE_URL')!,service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,anon=Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -31,14 +31,29 @@ Deno.serve(async(req)=>{
   if(limits.some(({error})=>error))throw new Error('Rate limit check failed');
   if(limits.some(({data})=>data!==true))return json({error:'Слишком много попыток. Повторите позже.'},429);
   let email=normalized+'@auth.kyro.invalid';
+  let verificationSent=false;
   if(action==='register'){
    const {data:existing,error:lookupError}=await admin.from('profiles').select('id').ilike('username',normalized).maybeSingle();
    if(lookupError)throw lookupError;
    if(existing)return json({error:'Этот username уже занят'},409);
+   if(typeof contactEmail==='string'&&contactEmail.trim()){
+    const {data:emailOwner,error:emailLookupError}=await admin.from('kyro_user_emails').select('user_id').eq('email',contactEmail.trim().toLowerCase()).maybeSingle();
+    if(emailLookupError)throw emailLookupError;
+    if(emailOwner)return json({error:'Этот email уже привязан к другому аккаунту KYRO'},409);
+   }
    const {data:created,error:createError}=await admin.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{username:normalized}});
    if(createError)return json({error:createError.message.includes('already been registered')?'Этот username уже занят':'Не удалось создать аккаунт'},409);
-   const {error:profileError}=await admin.from('profiles').upsert({id:created.user.id,username:normalized,full_name:normalized},{onConflict:'id'});
+   const {error:profileError}=await admin.from('profiles').upsert({id:created.user.id,username:normalized,full_name:normalized,email_verification_required:true,email_verified_at:null},{onConflict:'id'});
    if(profileError){await admin.auth.admin.deleteUser(created.user.id);throw profileError;}
+   if(typeof contactEmail==='string'&&contactEmail.trim()){
+    const normalizedEmail=contactEmail.trim().toLowerCase();
+    const {error:emailSaveError}=await admin.from('kyro_user_emails').insert({user_id:created.user.id,email:normalizedEmail,last_sent_at:new Date().toISOString(),daily_window_started_at:new Date().toISOString(),daily_send_count:1});
+    if(emailSaveError)throw emailSaveError;
+    const emailAuth=createClient(url,anon,{auth:{persistSession:false,autoRefreshToken:false}});
+    const site=(Deno.env.get('KYRO_SITE_URL')||'https://gptproject-gamma.vercel.app').replace(/\/$/,'');
+    const {error:emailSendError}=await emailAuth.auth.signInWithOtp({email:normalizedEmail,options:{shouldCreateUser:true,emailRedirectTo:site+'/email/confirm'}});
+    if(emailSendError)console.error('Registration verification email could not be sent',emailSendError);else verificationSent=true;
+   }
   }else{
    const {data:profile,error:profileError}=await admin.from('profiles').select('id').ilike('username',normalized).maybeSingle();
    if(profileError)throw profileError;
@@ -51,6 +66,6 @@ Deno.serve(async(req)=>{
   }
   const {data,error}=await auth.auth.signInWithPassword({email,password});
   if(error||!data.session)return json({error:'Неверный username или пароль'},401);
-  return json({access_token:data.session.access_token,refresh_token:data.session.refresh_token});
+  return json({access_token:data.session.access_token,refresh_token:data.session.refresh_token,email_verification_required:action==='register',email_verification_sent:verificationSent});
  }catch(error){console.error('username-auth failure',error);return json({error:'Не удалось выполнить запрос авторизации'},500);}
 });
