@@ -1,4 +1,4 @@
-const CACHE='kyro-shell-v12';
+const CACHE='kyro-shell-v13';
 const ASSET_CACHE='kyro-assets-v1';
 const SHELL=['/','/manifest.webmanifest','/kyro-icon.svg'];
 
@@ -38,17 +38,3 @@ self.addEventListener('fetch',event=>{
  }));
 });
 
-self.addEventListener('push',event=>{
- let payload={title:'KYRO',body:'У вас новое уведомление',url:'/notifications'};
- try{if(event.data)payload={...payload,...event.data.json()};}catch{if(event.data)payload.body=event.data.text();}
- event.waitUntil(self.registration.showNotification(payload.title||'KYRO',{body:payload.body||'У вас новое уведомление',icon:'/kyro-icon.svg',badge:'/kyro-icon.svg',data:{url:payload.url||'/notifications'},tag:payload.tag||'kyro-notification'}));
-});
-self.addEventListener('notificationclick',event=>{
- event.notification.close();
- const url=event.notification.data?.url||'/notifications';
- event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(clients=>{
-  const existing=clients.find(client=>new URL(client.url).origin===self.location.origin);
-  if(existing){void existing.focus();return existing.navigate(url);}
-  return self.clients.openWindow(url);
- }));
-});
