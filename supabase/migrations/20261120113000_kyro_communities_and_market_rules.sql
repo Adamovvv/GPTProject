@@ -57,10 +57,12 @@ begin
    uid := new.user_id;
    select count(*) into created_today from public.market_listings m where m.user_id=uid and m.created_at > now()-interval '24 hours';
    if created_today >= 10 then raise exception 'Можно опубликовать не более 10 товаров за 24 часа'; end if;
- elsif tg_table_name='kyro_community_posts' then
+ elsif tg_table_name='kyro_community_posts' or tg_table_name='kyro_community_members' then
    uid := new.user_id;
-   select count(*) into created_today from public.kyro_community_posts p where p.user_id=uid and p.created_at > now()-interval '24 hours';
-   if created_today >= 15 then raise exception 'Можно опубликовать не более 15 сообщений в сообществах за 24 часа'; end if;
+   if tg_table_name='kyro_community_posts' then
+     select count(*) into created_today from public.kyro_community_posts p where p.user_id=uid and p.created_at > now()-interval '24 hours';
+     if created_today >= 15 then raise exception 'Можно опубликовать не более 15 сообщений в сообществах за 24 часа'; end if;
+   end if;
  else raise exception 'Unsupported table'; end if;
  if exists(select 1 from public.profiles p where p.id=uid and p.email_verification_required and p.email_verified_at is null) then
    raise exception 'Подтвердите email, чтобы создавать сообщества, писать в них и публиковать товары в маркете';
@@ -71,6 +73,10 @@ drop trigger if exists kyro_require_verified_email_community on public.kyro_comm
 create trigger kyro_require_verified_email_community before insert on public.kyro_communities for each row execute function private.kyro_require_verified_email_for_market_and_communities();
 drop trigger if exists kyro_require_verified_email_market on public.market_listings;
 create trigger kyro_require_verified_email_market before insert on public.market_listings for each row execute function private.kyro_require_verified_email_for_market_and_communities();
+drop trigger if exists kyro_require_verified_email_community_post on public.kyro_community_posts;
+create trigger kyro_require_verified_email_community_post before insert on public.kyro_community_posts for each row execute function private.kyro_require_verified_email_for_market_and_communities();
+drop trigger if exists kyro_require_verified_email_community_member on public.kyro_community_members;
+create trigger kyro_require_verified_email_community_member before insert on public.kyro_community_members for each row execute function private.kyro_require_verified_email_for_market_and_communities();
 drop trigger if exists kyro_require_verified_email_community_post on public.kyro_community_posts;
 create trigger kyro_require_verified_email_community_post before insert on public.kyro_community_posts for each row execute function private.kyro_require_verified_email_for_market_and_communities();
 create or replace function private.kyro_add_community_owner_member()
