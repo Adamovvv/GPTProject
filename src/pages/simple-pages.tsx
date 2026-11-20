@@ -27,7 +27,10 @@ export function SettingsPage(){
  const [pushEnabled,setPushEnabled]=useState(false);
  const [contactEmail,setContactEmail]=useState('');
  const [emailVerified,setEmailVerified]=useState(false);
- const [emailSending,setEmailSending]=useState(false);\n const [emailCode,setEmailCode]=useState('');\n const [codeSent,setCodeSent]=useState(false);\n const [emailVerifying,setEmailVerifying]=useState(false);
+ const [emailSending,setEmailSending]=useState(false);
+ const [emailCode,setEmailCode]=useState('');
+ const [codeSent,setCodeSent]=useState(false);
+ const [emailVerifying,setEmailVerifying]=useState(false);
  useEffect(()=>{
   let active=true;
   void (async()=>{
