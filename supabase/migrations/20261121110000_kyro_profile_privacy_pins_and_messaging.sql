@@ -123,3 +123,4 @@ returns trigger language plpgsql set search_path=public,pg_temp as $
 begin update public.kyro_conversations set updated_at=new.created_at where id=new.conversation_id; return new; end; $;
 drop trigger if exists kyro_touch_conversation on public.kyro_messages;
 create trigger kyro_touch_conversation after insert on public.kyro_messages for each row execute function public.kyro_touch_conversation();
+revoke all on function public.kyro_touch_conversation() from public,anon,authenticated;
