@@ -13,7 +13,32 @@ const mobileLinks=[links[0],links[1],{to:'/messages',label:'Сообщения',
 export function AppShell(){
  const [dark,setDark]=useState(()=>localStorage.getItem('kyro-theme')==='dark');const [isAdmin,setIsAdmin]=useState(false);const [isSuspended,setIsSuspended]=useState(false);const [search,setSearch]=useState('');const [unreadNotifications,setUnreadNotifications]=useState(0);const [unreadMessages,setUnreadMessages]=useState(0);const nav=useNavigate();
  useEffect(()=>{const client=supabase;if(!client)return;let active=true;const check=async()=>{const {data:{user}}=await client.auth.getUser();if(!user){if(active){setIsAdmin(false);setIsSuspended(false);}return;}const [adminCheck,moderatorCheck,roleCheck,suspension]=await Promise.all([client.rpc('is_kyro_admin'),client.rpc('is_kyro_moderator'),client.from('kyro_user_roles').select('role').eq('user_id',user.id).maybeSingle(),client.from('kyro_user_suspensions').select('reason,expires_at').eq('user_id',user.id).maybeSingle()]);if(active){setIsAdmin(adminCheck.data===true||moderatorCheck.data===true||['owner','admin','moderator'].includes(roleCheck.data?.role||''));setIsSuspended(Boolean(suspension.data&&(!suspension.data.expires_at||new Date(suspension.data.expires_at)>new Date())));}};void check();const {data:{subscription}}=client.auth.onAuthStateChange(()=>{window.setTimeout(()=>{void check()},0)});return()=>{active=false;subscription.unsubscribe()}},[]);
- useEffect(()=>{const client=supabase;if(!client)return;let active=true;const refresh=async()=>{const {data:{user}}=await client.auth.getUser();if(!user){if(active){setUnreadNotifications(0);setUnreadMessages(0);}return;}const [{count:noticeCount},{data:conversations}]=await Promise.all([client.from('kyro_notifications').select('id',{count:'exact',head:true}).is('read_at',null),client.from('kyro_conversations').select('id').or('user_a.eq.'+user.id+',user_b.eq.'+user.id)]);if(!active)return;setUnreadNotifications(noticeCount||0);const ids=(conversations||[]).map(row=>row.id);if(!ids.length){setUnreadMessages(0);return;}const {count:messageCount}=await client.from('kyro_messages').select('id',{count:'exact',head:true}).in('conversation_id',ids).neq('sender_id',user.id).is('read_at',null);if(active)setUnreadMessages(messageCount||0);};void refresh();const timer=window.setInterval(()=>{void refresh()},15000);const {data:{subscription}}=client.auth.onAuthStateChange(()=>{window.setTimeout(()=>{void refresh()},0)});return()=>{active=false;window.clearInterval(timer);subscription.unsubscribe();};},[]);
+ useEffect(()=>{const client=supabase;if(!client)return;let active=true;let channel:ReturnType<typeof client.channel>|null=null;
+  const refresh=async()=>{const {data:{user}}=await client.auth.getUser();if(!user){if(active){setUnreadNotifications(0);setUnreadMessages(0);}return;}
+   const [{count:noticeCount},{data:conversations}]=await Promise.all([
+    client.from('kyro_notifications').select('id',{count:'exact',head:true}).is('read_at',null),
+    client.from('kyro_conversations').select('id').or('user_a.eq.'+user.id+',user_b.eq.'+user.id)
+   ]);
+   if(!active)return;setUnreadNotifications(noticeCount||0);
+   const ids=(conversations||[]).map(row=>row.id);
+   if(!ids.length){setUnreadMessages(0);return;}
+   const {count:messageCount}=await client.from('kyro_messages').select('id',{count:'exact',head:true}).in('conversation_id',ids).neq('sender_id',user.id).is('read_at',null);
+   if(active)setUnreadMessages(messageCount||0);
+  };
+  const start=async()=>{const {data:{user}}=await client.auth.getUser();if(!active||!user)return;
+   channel=client.channel('kyro-live-badges-'+user.id)
+    .on('postgres_changes',{event:'*',schema:'public',table:'kyro_notifications',filter:'user_id=eq.'+user.id},()=>{void refresh()})
+    .on('postgres_changes',{event:'*',schema:'public',table:'kyro_messages'},()=>{void refresh()})
+    .on('postgres_changes',{event:'*',schema:'public',table:'kyro_conversations'},()=>{void refresh()})
+    .subscribe();
+  };
+  void refresh();void start();
+  const timer=window.setInterval(()=>{void refresh()},60000);
+  const onLocalRefresh=()=>{void refresh()};
+  window.addEventListener('kyro:refresh-badges',onLocalRefresh);
+  const {data:{subscription}}=client.auth.onAuthStateChange(()=>{window.setTimeout(()=>{void refresh()},0)});
+  return()=>{active=false;window.clearInterval(timer);window.removeEventListener('kyro:refresh-badges',onLocalRefresh);subscription.unsubscribe();if(channel)void client.removeChannel(channel);};
+ },[]);
  useEffect(()=>{if(!('serviceWorker' in navigator)||!('PushManager' in window))return;let active=true;void navigator.serviceWorker.ready.then(async registration=>{if(!active)return;const subscription=await registration.pushManager.getSubscription();if(subscription)await subscription.unsubscribe();}).catch(()=>{});return()=>{active=false};},[]);
  useEffect(()=>{document.documentElement.classList.toggle('dark',dark);localStorage.setItem('kyro-theme',dark?'dark':'light');const themeColor=document.querySelector('meta[name="theme-color"]');themeColor?.setAttribute('content',dark?'#1b1b1b':'#ffffff');},[dark]);
  const submitSearch=(event:KeyboardEvent<HTMLInputElement>)=>{if(event.key==='Enter'&&search.trim())nav('/search?q='+encodeURIComponent(search.trim()))};
