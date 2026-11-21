@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
 import {Link,useParams} from 'react-router-dom';
-import {ArrowLeft,Loader2,MessageCircle} from 'lucide-react';
+import {ArrowLeft,MessageCircle} from 'lucide-react';
 import {Card,CardContent} from '@/components/ui/card';
 import {PostCard,type SharedPost,type PostAuthor} from '@/components/social/post-card';
 import {supabase} from '@/lib/supabase';
