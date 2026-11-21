@@ -5,7 +5,7 @@ import {Button} from '@/components/ui/button';
 import {supabase} from '@/lib/supabase';
 import {toast} from 'sonner';
 
-type Notice={id:string;kind:string;title:string;body:string;target_url:string|null;read_at:string|null;created_at:string};
+type Notice={id:string;actor_id:string|null;kind:string;title:string;body:string;target_url:string|null;read_at:string|null;created_at:string};
 const requestId=(notice:Notice)=>{if(!notice.target_url)return null;try{return new URL(notice.target_url,'https://kyro.local').searchParams.get('request_id')}catch{return null}};
 export function NotificationsPage(){
  const [rows,setRows]=useState<Notice[]>([]);
@@ -16,9 +16,13 @@ export function NotificationsPage(){
   if(!supabase){setLoading(false);return;}
   const {data:{user}}=await supabase.auth.getUser();
   if(!user){setLoading(false);return;}
-  const {data,error}=await supabase.from('kyro_notifications').select('id,kind,title,body,target_url,read_at,created_at').order('created_at',{ascending:false}).limit(100);
+  const {data,error}=await supabase.from('kyro_notifications').select('id,actor_id,kind,title,body,target_url,read_at,created_at').order('created_at',{ascending:false}).limit(100);
   if(error)toast.error('Не удалось загрузить уведомления');
-  setRows((data||[]) as Notice[]);
+  const notices=(data||[]) as Notice[];
+  const legacyActors=[...new Set(notices.filter(n=>n.kind==='follow_request'&&!requestId(n)&&n.actor_id).map(n=>n.actor_id as string))];
+  let legacyRequests=new Map<string,string>();
+  if(legacyActors.length){const {data:requests}=await supabase.from('kyro_follow_requests').select('id,requester_id').eq('target_id',user.id).eq('status','pending').in('requester_id',legacyActors);legacyRequests=new Map((requests||[]).map(request=>[request.requester_id,request.id]));}
+  setRows(notices.map(n=>n.kind==='follow_request'&&!requestId(n)&&n.actor_id&&legacyRequests.has(n.actor_id)?{...n,target_url:'/notifications?request_id='+legacyRequests.get(n.actor_id)}:n));
   setLoading(false);
   const {error:readError}=await supabase.from('kyro_notifications').update({read_at:new Date().toISOString()}).eq('user_id',user.id).is('read_at',null);
   if(readError)toast.error('Не удалось обновить статус уведомлений');
