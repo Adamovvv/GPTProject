@@ -21,6 +21,7 @@ const AdminPage=lazy(()=>import('@/pages/admin').then(m=>({default:m.AdminPage})
 const SettingsPage=lazy(()=>import('@/pages/simple-pages').then(m=>({default:m.SettingsPage})));
 
 const MessagesPage=lazy(()=>import('@/pages/messages').then(m=>({default:m.MessagesPage})));
+const PostDetailPage=lazy(()=>import('@/pages/post-detail').then(m=>({default:m.PostDetailPage})));
 
 function PageLoader(){return <div className="flex min-h-[45vh] items-center justify-center text-sm text-neutral-400" role="status">Загрузка KYRO…</div>}
 function Protected({children}:{children:React.ReactNode}){
@@ -34,7 +35,7 @@ export default function App(){
   <Route element={<Protected><AppShell/></Protected>}>
    <Route index element={<Suspense fallback={<PageLoader/>}><DashboardPage/></Suspense>}/><Route path="/social" element={<Suspense fallback={<PageLoader/>}><SocialPage/></Suspense>}/><Route path="/social/:postId" element={<Suspense fallback={<PageLoader/>}><PostDetailPage/></Suspense>}/>
    <Route path="/market" element={<Suspense fallback={<PageLoader/>}><MarketPage/></Suspense>}/><Route path="/market/:id" element={<Suspense fallback={<PageLoader/>}><MarketItemPage/></Suspense>}/><Route path="/communities" element={<Suspense fallback={<PageLoader/>}><CommunitiesPage/></Suspense>}/><Route path="/communities/:slug" element={<Suspense fallback={<PageLoader/>}><CommunitiesPage/></Suspense>}/><Route path="/events" element={<Suspense fallback={<PageLoader/>}><EventsPage/></Suspense>}/>
-   <Route path="/messages" element={<Suspense fallback={<PageLoader/>}><MessagesPage/></Suspense>}/><Route path="/notifications" element={<Suspense fallback={<PageLoader/>}><NotificationsPage/></Suspense>}/>
+   <Route path="/messages" element={<Suspense fallback={<PageLoader/>}><MessagesPage/></Suspense>}/><Route path="/social/:postId" element={<Suspense fallback={<PageLoader/>}><PostDetailPage/></Suspense>}/><Route path="/notifications" element={<Suspense fallback={<PageLoader/>}><NotificationsPage/></Suspense>}/>
    <Route path="/search" element={<Suspense fallback={<PageLoader/>}><SearchPage/></Suspense>}/><Route path="/profile" element={<Suspense fallback={<PageLoader/>}><ProfilePage/></Suspense>}/>
    <Route path="/u/:username" element={<Suspense fallback={<PageLoader/>}><ProfilePage/></Suspense>}/><Route path="/settings" element={<Suspense fallback={<PageLoader/>}><SettingsPage/></Suspense>}/>
    <Route path="/admin" element={<Suspense fallback={<PageLoader/>}><AdminPage/></Suspense>}/>
