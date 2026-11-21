@@ -1,5 +1,4 @@
 import type React from 'react';
-import {createElement} from 'react';
 import {lazy,Suspense,useEffect,useState} from 'react';
 import {Navigate,Route,Routes,useLocation} from 'react-router-dom';
 import {AppShell} from '@/components/layout/app-shell';
@@ -20,7 +19,7 @@ const MarketItemPage=lazy(()=>import('@/pages/market').then(m=>({default:m.Marke
 const AdminPage=lazy(()=>import('@/pages/admin').then(m=>({default:m.AdminPage})));
 const SettingsPage=lazy(()=>import('@/pages/simple-pages').then(m=>({default:m.SettingsPage})));
 
-const MessagesPage=lazy(()=>import('@/pages/simple-pages').then(m=>({default:()=>createElement(m.PlaceholderPage,{title:'Сообщения',description:'Личные диалоги и переписки.'})})));
+const MessagesPage=lazy(()=>import('@/pages/messages').then(m=>({default:m.MessagesPage})));
 
 function PageLoader(){return <div className="flex min-h-[45vh] items-center justify-center text-sm text-neutral-400" role="status">Загрузка KYRO…</div>}
 function Protected({children}:{children:React.ReactNode}){
