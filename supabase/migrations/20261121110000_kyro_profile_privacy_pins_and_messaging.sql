@@ -1,19 +1,6 @@
 alter table public.profiles add column if not exists pinned_post_id uuid;
 alter table public.profiles add column if not exists is_private boolean not null default false;
 
-create table if not exists public.kyro_profile_settings (
- user_id uuid primary key references auth.users(id) on delete cascade,
- is_private boolean not null default false,
- created_at timestamptz not null default now(),
- updated_at timestamptz not null default now()
-);
-alter table public.kyro_profile_settings enable row level security;
-drop policy if exists "Users read own profile settings" on public.kyro_profile_settings;
-create policy "Users read own profile settings" on public.kyro_profile_settings for select to authenticated using (user_id=(select auth.uid()));
-drop policy if exists "Users insert own profile settings" on public.kyro_profile_settings;
-create policy "Users insert own profile settings" on public.kyro_profile_settings for insert to authenticated with check (user_id=(select auth.uid()));
-drop policy if exists "Users update own profile settings" on public.kyro_profile_settings;
-create policy "Users update own profile settings" on public.kyro_profile_settings for update to authenticated using (user_id=(select auth.uid())) with check (user_id=(select auth.uid()));
 
 create table if not exists public.kyro_follow_requests (
  id uuid primary key default gen_random_uuid(),
@@ -29,7 +16,7 @@ alter table public.kyro_follow_requests enable row level security;
 drop policy if exists "Users read own follow requests" on public.kyro_follow_requests;
 create policy "Users read own follow requests" on public.kyro_follow_requests for select to authenticated using (requester_id=(select auth.uid()) or target_id=(select auth.uid()));
 drop policy if exists "Users create own follow requests" on public.kyro_follow_requests;
-create policy "Users create own follow requests" on public.kyro_follow_requests for insert to authenticated with check (requester_id=(select auth.uid()) and status='pending' and not public.kyro_is_suspended((select auth.uid())));
+create policy "Users create own follow requests" on public.kyro_follow_requests for insert to authenticated with check (requester_id=(select auth.uid()) and status='pending' and not public.kyro_is_suspended((select auth.uid())) and exists(select 1 from public.profiles p where p.id=target_id and p.is_private));
 drop policy if exists "Targets update follow requests" on public.kyro_follow_requests;
 create policy "Targets update follow requests" on public.kyro_follow_requests for update to authenticated using (target_id=(select auth.uid()) and status='pending') with check (target_id=(select auth.uid()) and status in ('accepted','rejected'));
 
@@ -118,5 +105,21 @@ drop policy if exists "Recipients mark messages read" on public.kyro_messages;
 create policy "Recipients mark messages read" on public.kyro_messages for update to authenticated using (
  exists(select 1 from public.kyro_conversations c where c.id=conversation_id and (select auth.uid()) in (c.user_a,c.user_b) and sender_id<>(select auth.uid())))
  with check (exists(select 1 from public.kyro_conversations c where c.id=conversation_id and (select auth.uid()) in (c.user_a,c.user_b)));
-grant select,insert,update on public.kyro_profile_settings,public.kyro_follow_requests,public.kyro_conversations,public.kyro_messages to authenticated;
-grant delete on public.kyro_messages to authenticated;
+grant select,insert,update on public.kyro_follow_requests,public.kyro_conversations to authenticated;
+grant select,insert on public.kyro_messages to authenticated;
+grant update(read_at) on public.kyro_messages to authenticated;
+create or replace function public.kyro_guard_follow_request_update()
+returns trigger language plpgsql set search_path=public,pg_temp as $
+begin
+ if auth.uid() is distinct from old.target_id or new.requester_id<>old.requester_id or new.target_id<>old.target_id or new.created_at<>old.created_at or old.status<>'pending' or new.status not in ('accepted','rejected') then
+  raise exception 'INVALID_FOLLOW_REQUEST_UPDATE';
+ end if;
+ return new;
+end; $;
+drop trigger if exists kyro_guard_follow_request_update on public.kyro_follow_requests;
+create trigger kyro_guard_follow_request_update before update on public.kyro_follow_requests for each row execute function public.kyro_guard_follow_request_update();
+create or replace function public.kyro_touch_conversation()
+returns trigger language plpgsql set search_path=public,pg_temp as $
+begin update public.kyro_conversations set updated_at=new.created_at where id=new.conversation_id; return new; end; $;
+drop trigger if exists kyro_touch_conversation on public.kyro_messages;
+create trigger kyro_touch_conversation after insert on public.kyro_messages for each row execute function public.kyro_touch_conversation();
