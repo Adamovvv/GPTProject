@@ -123,7 +123,7 @@ end; $func$;
 drop trigger if exists kyro_guard_follow_request_update on public.kyro_follow_requests;
 create trigger kyro_guard_follow_request_update before update on public.kyro_follow_requests for each row execute function public.kyro_guard_follow_request_update();
 create or replace function public.kyro_touch_conversation()
-returns trigger language plpgsql set search_path=public,pg_temp as $func$
+returns trigger language plpgsql security definer set search_path=public,pg_temp as $func$
 begin update public.kyro_conversations set updated_at=new.created_at where id=new.conversation_id; return new; end; $func$;
 drop trigger if exists kyro_touch_conversation on public.kyro_messages;
 create trigger kyro_touch_conversation after insert on public.kyro_messages for each row execute function public.kyro_touch_conversation();
