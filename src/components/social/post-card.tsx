@@ -43,7 +43,7 @@ function PostComments({postId,openByDefault=false}:{postId:string;openByDefault?
  const send=async()=>{
   const text=draft.trim();if(!supabase||!userId||!text||sending)return;setSending(true);
   const rootId=replyTo?(replyTo.parent_comment_id||replyTo.id):null;
-  const mention=replyTo?.author.username?'@'+replyTo.author.username+' ':'';
+  const mention=replyTo&&replyTo.user_id!==userId&&replyTo.author.username?'@'+replyTo.author.username+' ':'';
   const content=replyTo&&!text.startsWith('@'+(replyTo.author.username||'\u0000'))?mention+text:text;
   const {error}=await supabase.from('social_comments').insert({post_id:postId,user_id:userId,content,parent_comment_id:rootId});
   setSending(false);if(error){toast.error(error.message||'Не удалось добавить комментарий');return;}
