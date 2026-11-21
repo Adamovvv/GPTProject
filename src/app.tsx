@@ -1,5 +1,4 @@
 import type React from 'react';
-import {createElement} from 'react';
 import {lazy,Suspense,useEffect,useState} from 'react';
 import {Navigate,Route,Routes,useLocation} from 'react-router-dom';
 import {AppShell} from '@/components/layout/app-shell';
