@@ -6,15 +6,16 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type CarouselApi = UseEmblaCarouselType[1];
-type CarouselProps = { opts?: Parameters<typeof useEmblaCarousel>[0]; setApi?: (api: CarouselApi) => void; orientation?: "horizontal" | "vertical"; className?: string; children: React.ReactNode };
+type CarouselProps = { opts?: Parameters<typeof useEmblaCarousel>[0]; setApi?: (api: CarouselApi) => void; onSelect?: (index:number) => void; orientation?: "horizontal" | "vertical"; className?: string; children: React.ReactNode };
 const CarouselContext = React.createContext<{ carouselRef: ReturnType<typeof useEmblaCarousel>[0]; api: CarouselApi; scrollPrev: () => void; scrollNext: () => void; canScrollPrev: boolean; canScrollNext: boolean; orientation: "horizontal" | "vertical" } | null>(null);
-export function Carousel({ orientation="horizontal", opts, setApi, className, children, ...props }: CarouselProps & React.HTMLAttributes<HTMLDivElement>) {
+export function Carousel({ orientation="horizontal", opts, setApi, onSelect, className, children, ...props }: CarouselProps & React.HTMLAttributes<HTMLDivElement>) {
  const [carouselRef, api] = useEmblaCarousel({ ...opts, axis: orientation === "horizontal" ? "x" : "y" });
  const [canScrollPrev,setCanScrollPrev]=React.useState(false); const [canScrollNext,setCanScrollNext]=React.useState(false);
  const onSelect=React.useCallback((embla: NonNullable<CarouselApi>)=>{setCanScrollPrev(embla.canScrollPrev());setCanScrollNext(embla.canScrollNext());},[]);
  const scrollPrev=React.useCallback(()=>api?.scrollPrev(),[api]); const scrollNext=React.useCallback(()=>api?.scrollNext(),[api]);
  React.useEffect(()=>{if(!api)return;onSelect(api);api.on("reInit",onSelect);api.on("select",onSelect);return()=>{api.off("select",onSelect);api.off("reInit",onSelect)};},[api,onSelect]);
  React.useEffect(()=>{if(api&&setApi)setApi(api)},[api,setApi]);
+ React.useEffect(()=>{if(!api||!onSelect)return;const update=()=>onSelect(api.selectedScrollSnap());api.on('select',update);update();return()=>{api.off('select',update)};},[api,onSelect]);
  return <CarouselContext.Provider value={{carouselRef,api,scrollPrev,scrollNext,canScrollPrev,canScrollNext,orientation}}><div onKeyDownCapture={e=>{if(e.key==="ArrowLeft"){e.preventDefault();scrollPrev()}else if(e.key==="ArrowRight"){e.preventDefault();scrollNext()}}} className={cn("relative",className)} role="region" aria-roledescription="carousel" {...props}>{children}</div></CarouselContext.Provider>;
 }
 export function CarouselContent({className,...props}:React.HTMLAttributes<HTMLDivElement>){const c=React.useContext(CarouselContext);if(!c)throw new Error("CarouselContent must be used within Carousel");return <div ref={c.carouselRef} className="overflow-hidden"><div className={cn("flex",c.orientation==="horizontal"?"-ml-4":"-mt-4 flex-col",className)} {...props}/></div>}
