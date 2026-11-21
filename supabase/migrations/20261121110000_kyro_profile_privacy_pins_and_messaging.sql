@@ -124,3 +124,29 @@ begin update public.kyro_conversations set updated_at=new.created_at where id=ne
 drop trigger if exists kyro_touch_conversation on public.kyro_messages;
 create trigger kyro_touch_conversation after insert on public.kyro_messages for each row execute function public.kyro_touch_conversation();
 revoke all on function public.kyro_touch_conversation() from public,anon,authenticated;
+
+create or replace function public.kyro_guard_blocked_direct_interaction()
+returns trigger language plpgsql security definer set search_path=public,pg_temp as $$
+declare a uuid; b uuid;
+begin
+ if tg_table_name='kyro_conversations' then a:=new.user_a; b:=new.user_b;
+ else select user_a,user_b into a,b from public.kyro_conversations where id=new.conversation_id; end if;
+ if a is null or b is null then raise exception 'CONVERSATION_NOT_FOUND'; end if;
+ if exists(select 1 from public.kyro_user_blocks x where (x.blocker_id=a and x.blocked_id=b) or (x.blocker_id=b and x.blocked_id=a)) then raise exception 'USER_BLOCKED'; end if;
+ if public.kyro_is_suspended(auth.uid()) then raise exception 'ACCOUNT_SUSPENDED'; end if;
+ return new;
+end; $$;
+revoke all on function public.kyro_guard_blocked_direct_interaction() from public,anon,authenticated;
+drop trigger if exists kyro_guard_conversation_block on public.kyro_conversations;
+create trigger kyro_guard_conversation_block before insert on public.kyro_conversations for each row execute function public.kyro_guard_blocked_direct_interaction();
+drop trigger if exists kyro_guard_message_block on public.kyro_messages;
+create trigger kyro_guard_message_block before insert on public.kyro_messages for each row execute function public.kyro_guard_blocked_direct_interaction();
+create or replace function public.kyro_guard_follow_request_block()
+returns trigger language plpgsql security definer set search_path=public,pg_temp as $$
+begin
+ if exists(select 1 from public.kyro_user_blocks x where (x.blocker_id=new.requester_id and x.blocked_id=new.target_id) or (x.blocker_id=new.target_id and x.blocked_id=new.requester_id)) then raise exception 'USER_BLOCKED'; end if;
+ return new;
+end; $$;
+revoke all on function public.kyro_guard_follow_request_block() from public,anon,authenticated;
+drop trigger if exists kyro_guard_follow_request_block on public.kyro_follow_requests;
+create trigger kyro_guard_follow_request_block before insert on public.kyro_follow_requests for each row execute function public.kyro_guard_follow_request_block();
