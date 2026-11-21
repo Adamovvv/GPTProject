@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-type CarouselApi = UseEmblaCarouselType[1];
+export type CarouselApi = UseEmblaCarouselType[1];
 type CarouselProps = { opts?: Parameters<typeof useEmblaCarousel>[0]; setApi?: (api: CarouselApi) => void; onSelect?: (index:number) => void; orientation?: "horizontal" | "vertical"; className?: string; children: React.ReactNode };
 const CarouselContext = React.createContext<{ carouselRef: ReturnType<typeof useEmblaCarousel>[0]; api: CarouselApi; scrollPrev: () => void; scrollNext: () => void; canScrollPrev: boolean; canScrollNext: boolean; orientation: "horizontal" | "vertical" } | null>(null);
 export function Carousel({ orientation="horizontal", opts, setApi, onSelect, className, children, ...props }: CarouselProps & Omit<React.HTMLAttributes<HTMLDivElement>, 'onSelect'>) {
