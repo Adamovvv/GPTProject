@@ -108,19 +108,23 @@ create policy "Recipients mark messages read" on public.kyro_messages for update
 grant select,insert,update on public.kyro_follow_requests,public.kyro_conversations to authenticated;
 grant select,insert on public.kyro_messages to authenticated;
 grant update(read_at) on public.kyro_messages to authenticated;
+drop policy if exists "Targets update follow requests" on public.kyro_follow_requests;
+create policy "Targets update follow requests" on public.kyro_follow_requests for update to authenticated using (target_id=(select auth.uid()) and status='pending') with check (target_id=(select auth.uid()) and status in ('accepted','rejected'));
+drop policy if exists "Requesters retry rejected requests" on public.kyro_follow_requests;
+create policy "Requesters retry rejected requests" on public.kyro_follow_requests for update to authenticated using (requester_id=(select auth.uid()) and status='rejected') with check (requester_id=(select auth.uid()) and status='pending');
 create or replace function public.kyro_guard_follow_request_update()
-returns trigger language plpgsql set search_path=public,pg_temp as $
+returns trigger language plpgsql set search_path=public,pg_temp as $func$
 begin
- if auth.uid() is distinct from old.target_id or new.requester_id<>old.requester_id or new.target_id<>old.target_id or new.created_at<>old.created_at or old.status<>'pending' or new.status not in ('accepted','rejected') then
-  raise exception 'INVALID_FOLLOW_REQUEST_UPDATE';
- end if;
- return new;
-end; $;
+ if new.requester_id<>old.requester_id or new.target_id<>old.target_id or new.created_at<>old.created_at then raise exception 'INVALID_FOLLOW_REQUEST_UPDATE'; end if;
+ if auth.uid()=old.target_id and old.status='pending' and new.status in ('accepted','rejected') then return new; end if;
+ if auth.uid()=old.requester_id and old.status='rejected' and new.status='pending' then return new; end if;
+ raise exception 'INVALID_FOLLOW_REQUEST_UPDATE';
+end; $func$;
 drop trigger if exists kyro_guard_follow_request_update on public.kyro_follow_requests;
 create trigger kyro_guard_follow_request_update before update on public.kyro_follow_requests for each row execute function public.kyro_guard_follow_request_update();
 create or replace function public.kyro_touch_conversation()
-returns trigger language plpgsql set search_path=public,pg_temp as $
-begin update public.kyro_conversations set updated_at=new.created_at where id=new.conversation_id; return new; end; $;
+returns trigger language plpgsql set search_path=public,pg_temp as $func$
+begin update public.kyro_conversations set updated_at=new.created_at where id=new.conversation_id; return new; end; $func$;
 drop trigger if exists kyro_touch_conversation on public.kyro_messages;
 create trigger kyro_touch_conversation after insert on public.kyro_messages for each row execute function public.kyro_touch_conversation();
 revoke all on function public.kyro_touch_conversation() from public,anon,authenticated;
