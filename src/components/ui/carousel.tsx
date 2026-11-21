@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 type CarouselApi = UseEmblaCarouselType[1];
 type CarouselProps = { opts?: Parameters<typeof useEmblaCarousel>[0]; setApi?: (api: CarouselApi) => void; onSelect?: (index:number) => void; orientation?: "horizontal" | "vertical"; className?: string; children: React.ReactNode };
 const CarouselContext = React.createContext<{ carouselRef: ReturnType<typeof useEmblaCarousel>[0]; api: CarouselApi; scrollPrev: () => void; scrollNext: () => void; canScrollPrev: boolean; canScrollNext: boolean; orientation: "horizontal" | "vertical" } | null>(null);
-export function Carousel({ orientation="horizontal", opts, setApi, onSelect, className, children, ...props }: CarouselProps & React.HTMLAttributes<HTMLDivElement>) {
+export function Carousel({ orientation="horizontal", opts, setApi, onSelect, className, children, ...props }: CarouselProps & Omit<React.HTMLAttributes<HTMLDivElement>, 'onSelect'>) {
  const [carouselRef, api] = useEmblaCarousel({ ...opts, axis: orientation === "horizontal" ? "x" : "y" });
  const [canScrollPrev,setCanScrollPrev]=React.useState(false); const [canScrollNext,setCanScrollNext]=React.useState(false);
  const onEmblaSelect=React.useCallback((embla: NonNullable<CarouselApi>)=>{setCanScrollPrev(embla.canScrollPrev());setCanScrollNext(embla.canScrollNext());},[]);
