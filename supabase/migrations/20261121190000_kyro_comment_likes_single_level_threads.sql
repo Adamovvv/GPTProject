@@ -15,6 +15,7 @@ using (exists (
   where c.id = comment_id and c.moderation_status = 'visible'
 ));
 
+drop policy if exists "Users like comments as themselves" on public.social_comment_likes;
 drop policy if exists "Active users like comments" on public.social_comment_likes;
 create policy "Active users like comments"
 on public.social_comment_likes for insert to authenticated
