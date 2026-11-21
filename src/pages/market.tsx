@@ -1,6 +1,6 @@
 import {useCallback,useEffect,useState} from 'react';
 import {Link,useParams} from 'react-router-dom';
-import {ShoppingBag,Plus,Loader2,Trash2,ImagePlus,ArrowLeft,ChevronLeft,ChevronRight,UserRound} from 'lucide-react';
+import {ShoppingBag,Plus,Loader2,Trash2,ImagePlus,ArrowLeft,UserRound} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {Card,CardContent} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
