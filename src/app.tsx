@@ -9,6 +9,7 @@ const DashboardPage=lazy(()=>import('@/pages/dashboard').then(m=>({default:m.Das
 const AuthPage=lazy(()=>import('@/pages/auth').then(m=>({default:m.AuthPage})));
 const PrivacyPage=lazy(()=>import('@/pages/privacy').then(m=>({default:m.PrivacyPage})));
 const SocialPage=lazy(()=>import('@/pages/social').then(m=>({default:m.SocialPage})));
+const PostDetailPage=lazy(()=>import('@/pages/post-detail').then(m=>({default:m.PostDetailPage})));
 const SearchPage=lazy(()=>import('@/pages/search').then(m=>({default:m.SearchPage})));
 const NotificationsPage=lazy(()=>import('@/pages/notifications').then(m=>({default:m.NotificationsPage})));
 const ProfilePage=lazy(()=>import('@/pages/profile').then(m=>({default:m.ProfilePage})));
@@ -31,7 +32,7 @@ export default function App(){
  return <><Routes>
   <Route path="/login" element={<Suspense fallback={<PageLoader/>}><AuthPage/></Suspense>}/><Route path="/privacy" element={<Suspense fallback={<PageLoader/>}><PrivacyPage/></Suspense>}/>
   <Route element={<Protected><AppShell/></Protected>}>
-   <Route index element={<Suspense fallback={<PageLoader/>}><DashboardPage/></Suspense>}/><Route path="/social" element={<Suspense fallback={<PageLoader/>}><SocialPage/></Suspense>}/>
+   <Route index element={<Suspense fallback={<PageLoader/>}><DashboardPage/></Suspense>}/><Route path="/social" element={<Suspense fallback={<PageLoader/>}><SocialPage/></Suspense>}/><Route path="/social/:postId" element={<Suspense fallback={<PageLoader/>}><PostDetailPage/></Suspense>}/>
    <Route path="/market" element={<Suspense fallback={<PageLoader/>}><MarketPage/></Suspense>}/><Route path="/market/:id" element={<Suspense fallback={<PageLoader/>}><MarketItemPage/></Suspense>}/><Route path="/communities" element={<Suspense fallback={<PageLoader/>}><CommunitiesPage/></Suspense>}/><Route path="/communities/:slug" element={<Suspense fallback={<PageLoader/>}><CommunitiesPage/></Suspense>}/><Route path="/events" element={<Suspense fallback={<PageLoader/>}><EventsPage/></Suspense>}/>
    <Route path="/messages" element={<Suspense fallback={<PageLoader/>}><MessagesPage/></Suspense>}/><Route path="/notifications" element={<Suspense fallback={<PageLoader/>}><NotificationsPage/></Suspense>}/>
    <Route path="/search" element={<Suspense fallback={<PageLoader/>}><SearchPage/></Suspense>}/><Route path="/profile" element={<Suspense fallback={<PageLoader/>}><ProfilePage/></Suspense>}/>
