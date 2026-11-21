@@ -5,6 +5,9 @@ alter table public.social_comments
 create index if not exists social_comments_post_parent_created_idx
   on public.social_comments(post_id, parent_comment_id, created_at);
 
+create index if not exists social_comments_parent_comment_id_idx
+  on public.social_comments(parent_comment_id);
+
 create or replace function public.kyro_validate_comment_parent()
 returns trigger
 language plpgsql
