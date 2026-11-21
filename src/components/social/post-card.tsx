@@ -1,4 +1,4 @@
-import {useCallback,useEffect,useRef,useState,type ReactNode} from 'react';
+import {useCallback,useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {Eye,Heart,MessageCircle,MoreHorizontal,Send,X} from 'lucide-react';
 import {VerifiedBadge} from '@/components/social/verified-badge';
@@ -18,7 +18,7 @@ function getViewSession(postId:string){const key='kyro:view-session:'+postId;con
 
 type ThreadComment={id:string;post_id:string;user_id:string;content:string;created_at:string;parent_comment_id:string|null;author:PostAuthor;likes:number;liked:boolean};
 function PostComments({postId,openByDefault=false}:{postId:string;openByDefault?:boolean}){
- const [userId,setUserId]=useState('');const [count,setCount]=useState(0);const [countLoaded,setCountLoaded]=useState(false);const [expanded,setExpanded]=useState(openByDefault);const [comments,setComments]=useState<ThreadComment[]>([]);const [replyTo,setReplyTo]=useState<ThreadComment|null>(null);const [draft,setDraft]=useState('');const [loading,setLoading]=useState(false);const [sending,setSending]=useState(false);
+ const [userId,setUserId]=useState('');const [count,setCount]=useState(0);const [countLoaded,setCountLoaded]=useState(false);const [expanded]=useState(openByDefault);const [comments,setComments]=useState<ThreadComment[]>([]);const [replyTo,setReplyTo]=useState<ThreadComment|null>(null);const [draft,setDraft]=useState('');const [loading,setLoading]=useState(false);const [sending,setSending]=useState(false);
  const load=useCallback(async()=>{
   if(!supabase)return;setLoading(true);
   const {data,error}=await supabase.from('social_comments').select('id,post_id,user_id,content,created_at,parent_comment_id').eq('post_id',postId).eq('moderation_status','visible').order('created_at',{ascending:true}).limit(500);
