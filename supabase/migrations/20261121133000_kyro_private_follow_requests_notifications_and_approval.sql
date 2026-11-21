@@ -53,7 +53,7 @@ declare
   v_actor_name text;
 begin
   if new.status = 'pending'
-     and (tg_op = 'INSERT' or old.status is distinct from 'pending') then
+     and (tg_op = 'INSERT' or (tg_op = 'UPDATE' and old.status is distinct from 'pending')) then
     select coalesce(nullif(full_name, ''), nullif(username, ''), 'Пользователь KYRO')
       into v_actor_name
     from public.profiles
