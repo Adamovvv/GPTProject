@@ -1,4 +1,4 @@
-const CACHE='kyro-shell-v17';
+const CACHE='kyro-shell-v18';
 const ASSET_CACHE='kyro-assets-v1';
 const SHELL=['/','/manifest.webmanifest','/kyro-icon.svg'];
 
@@ -37,4 +37,3 @@ self.addEventListener('fetch',event=>{
   return update;
  }));
 });
-
