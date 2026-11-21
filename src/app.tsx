@@ -16,6 +16,7 @@ const ProfilePage=lazy(()=>import('@/pages/profile').then(m=>({default:m.Profile
 const EventsPage=lazy(()=>import('@/pages/events').then(m=>({default:m.EventsPage})));
 const CommunitiesPage=lazy(()=>import('@/pages/communities').then(m=>({default:m.CommunitiesPage})));
 const MarketPage=lazy(()=>import('@/pages/market').then(m=>({default:m.MarketPage})));
+const MarketItemPage=lazy(()=>import('@/pages/market').then(m=>({default:m.MarketItemPage})));
 const AdminPage=lazy(()=>import('@/pages/admin').then(m=>({default:m.AdminPage})));
 const SettingsPage=lazy(()=>import('@/pages/simple-pages').then(m=>({default:m.SettingsPage})));
 
@@ -32,7 +33,7 @@ export default function App(){
   <Route path="/login" element={<Suspense fallback={<PageLoader/>}><AuthPage/></Suspense>}/><Route path="/privacy" element={<Suspense fallback={<PageLoader/>}><PrivacyPage/></Suspense>}/>
   <Route element={<Protected><AppShell/></Protected>}>
    <Route index element={<Suspense fallback={<PageLoader/>}><DashboardPage/></Suspense>}/><Route path="/social" element={<Suspense fallback={<PageLoader/>}><SocialPage/></Suspense>}/>
-   <Route path="/market" element={<Suspense fallback={<PageLoader/>}><MarketPage/></Suspense>}/><Route path="/communities" element={<Suspense fallback={<PageLoader/>}><CommunitiesPage/></Suspense>}/><Route path="/communities/:slug" element={<Suspense fallback={<PageLoader/>}><CommunitiesPage/></Suspense>}/><Route path="/events" element={<Suspense fallback={<PageLoader/>}><EventsPage/></Suspense>}/>
+   <Route path="/market" element={<Suspense fallback={<PageLoader/>}><MarketPage/></Suspense>}/><Route path="/market/:id" element={<Suspense fallback={<PageLoader/>}><MarketItemPage/></Suspense>}/><Route path="/communities" element={<Suspense fallback={<PageLoader/>}><CommunitiesPage/></Suspense>}/><Route path="/communities/:slug" element={<Suspense fallback={<PageLoader/>}><CommunitiesPage/></Suspense>}/><Route path="/events" element={<Suspense fallback={<PageLoader/>}><EventsPage/></Suspense>}/>
    <Route path="/messages" element={<Suspense fallback={<PageLoader/>}><MessagesPage/></Suspense>}/><Route path="/notifications" element={<Suspense fallback={<PageLoader/>}><NotificationsPage/></Suspense>}/>
    <Route path="/search" element={<Suspense fallback={<PageLoader/>}><SearchPage/></Suspense>}/><Route path="/profile" element={<Suspense fallback={<PageLoader/>}><ProfilePage/></Suspense>}/>
    <Route path="/u/:username" element={<Suspense fallback={<PageLoader/>}><ProfilePage/></Suspense>}/><Route path="/settings" element={<Suspense fallback={<PageLoader/>}><SettingsPage/></Suspense>}/>
